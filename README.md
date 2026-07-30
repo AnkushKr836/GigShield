@@ -131,18 +131,3 @@ cd backend && pytest
 cd frontend && npm test
 ```
 
-## Project management
-
-The full Work Breakdown Structure and Gantt schedule (mapped to the hackathon's 3 official phases) live in [`project-management/gigshield_schedule.pod`](project-management/gigshield_schedule.pod) — open with [ProjectLibre](https://www.projectlibre.com/).
-
-## Team
-
-| Member | Role |
-|---|---|
-| Person A | Backend & Database Lead |
-| Person B | Frontend & UX Lead |
-| Person C | AI/ML & Integrations Lead |
-
----
-
-**Scope note:** This is a hackathon prototype. Traffic/curfew disruption data is simulated via `mocks/`; weather data is sourced live from OpenWeatherMap. Payouts run through Razorpay's sandbox/test mode — no real funds move.
