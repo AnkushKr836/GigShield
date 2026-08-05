@@ -2,8 +2,6 @@
 
 **AI-powered parametric income-loss insurance for India's gig delivery workforce.**
 
-Built for **Guidewire DEVTrails 2026 — University Hackathon**.
-
 GigShield protects platform-based delivery partners (food, e-commerce, grocery/Q-commerce) against lost income from external, uncontrollable disruptions — extreme weather, pollution, floods, curfews, and local strikes. It runs on a weekly premium cycle, verifies claims against objective external data, and pays out automatically. It does **not** cover health, life, accidents, or vehicle repairs.
 
 ---
