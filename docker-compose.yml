@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:14
+    container_name: gigshield-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gigshield
+      POSTGRES_USER: gigshield_user
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - gigshield_pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gigshield_user -d gigshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: gigshield-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://gigshield_user:devpassword@db:5432/gigshield
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: gigshield-frontend
+    restart: unless-stopped
+    env_file:
+      - ./frontend/.env.local
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  gigshield_pgdata:
