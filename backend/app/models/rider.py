@@ -14,13 +14,15 @@ class Rider(Base):
     phone = Column(String(20), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     persona_type = Column(String(30), nullable=False)  # food_delivery | ecommerce | grocery_qcommerce
+    company_id = Column(String(36), ForeignKey("company.company_id"), nullable=False)
     zone_id = Column(String(36), ForeignKey("zone.zone_id"), nullable=False)
     joined_on = Column(Date, server_default=func.current_date())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    company = relationship("Company", back_populates="riders")
     zone = relationship("Zone", back_populates="riders")
-    policies = relationship("Policy", back_populates="rider")
+    rides = relationship("Ride", back_populates="rider")
     claim_tokens = relationship("ClaimToken", back_populates="rider")
     credibility_scores = relationship("CredibilityScore", back_populates="rider")
     activity_logs = relationship("ActivityLog", back_populates="rider")

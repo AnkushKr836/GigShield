@@ -5,27 +5,25 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
 from app import models  # noqa: F401 — import ensures all models register with Base.metadata
-from app.api import riders, policies, zones
+from app.api import riders, zones, companies, coverage_plans, rides, claims
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Dev/demo convenience: auto-creates tables if they don't exist.
-    # Production/Docker deployment uses database/schema.sql instead (see docker-compose.yml).
     Base.metadata.create_all(bind=engine)
     yield
 
 
-app = FastAPI(title="GigShield API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="GigShield API (prototype)", version="0.2.0", lifespan=lifespan)
 
-# Allows the Next.js dev server (and, once deployed, the real frontend origin)
-# to call this API from the browser. Without this, every browser-side fetch
-# call silently fails CORS preflight even though curl/Postman work fine.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -39,5 +37,8 @@ def health_check():
 
 
 app.include_router(riders.router)
-app.include_router(policies.router)
 app.include_router(zones.router)
+app.include_router(companies.router)
+app.include_router(coverage_plans.router)
+app.include_router(rides.router)
+app.include_router(claims.router)

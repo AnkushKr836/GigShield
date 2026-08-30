@@ -21,7 +21,6 @@ async function request(path, { method = "GET", body, token } = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    // FastAPI returns { detail: "..." } on errors — surface that plain-language message
     throw new ApiError(data.detail || "Something went wrong. Please try again.", res.status);
   }
   return data;
@@ -31,9 +30,16 @@ export const api = {
   registerRider: (payload) => request("/riders/register", { method: "POST", body: payload }),
   login: (payload) => request("/riders/login", { method: "POST", body: payload }),
   getMe: (token) => request("/riders/me", { token }),
-  createPolicy: (token) => request("/policies/", { method: "POST", token }),
-  listPolicies: (token) => request("/policies/me", { token }),
+
   listZones: () => request("/zones/"),
+  listCompanies: () => request("/companies/"),
+
+  listMyRides: (token) => request("/rides/me", { token }),
+  getRide: (rideId, token) => request(`/rides/${rideId}`, { token }),
+  simulateRides: (token) => request("/rides/simulate", { method: "POST", token }),
+
+  raiseClaim: (payload, token) => request("/claims/", { method: "POST", body: payload, token }),
+  listMyClaims: (token) => request("/claims/me", { token }),
 };
 
 export { ApiError };

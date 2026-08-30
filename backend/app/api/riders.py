@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token, get_current_rider
 from app.models.rider import Rider
 from app.models.zone import Zone
+from app.models.company import Company
 from app.schemas.rider import RiderCreate, RiderOut, RiderLogin, Token
 
 router = APIRouter(prefix="/riders", tags=["riders"])
@@ -12,7 +13,6 @@ router = APIRouter(prefix="/riders", tags=["riders"])
 
 @router.post("/register", response_model=RiderOut, status_code=status.HTTP_201_CREATED)
 def register_rider(payload: RiderCreate, db: Session = Depends(get_db)):
-    # REQ-4.1.2 — reject if email or phone already registered
     existing = db.query(Rider).filter(
         (Rider.email == payload.email) | (Rider.phone == payload.phone)
     ).first()
@@ -26,12 +26,17 @@ def register_rider(payload: RiderCreate, db: Session = Depends(get_db)):
     if not zone:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Zone not found.")
 
+    company = db.query(Company).filter(Company.company_id == payload.company_id).first()
+    if not company:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found.")
+
     rider = Rider(
         name=payload.name,
         email=payload.email,
         phone=payload.phone,
         password_hash=hash_password(payload.password),
         persona_type=payload.persona_type,
+        company_id=payload.company_id,
         zone_id=payload.zone_id,
     )
     db.add(rider)

@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
@@ -10,6 +10,7 @@ class RiderCreate(BaseModel):
     phone: str = Field(min_length=6, max_length=20)
     password: str = Field(min_length=8)
     persona_type: Literal["food_delivery", "ecommerce", "grocery_qcommerce"]
+    company_id: str
     zone_id: str
 
 
@@ -21,6 +22,7 @@ class RiderOut(BaseModel):
     email: EmailStr
     phone: str
     persona_type: str
+    company_id: str
     zone_id: str
     joined_on: date
 
