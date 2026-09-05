@@ -13,7 +13,7 @@ LOCATIONS = [
 ]
 
 
-def simulate_rides_for_rider(db: Session, rider, count: int = 6) -> list[Ride]:
+def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
     """
     Creates `count` fabricated completed rides for a rider, spread over the
     past 10 days, plus one fabricated disruption event overlapping the

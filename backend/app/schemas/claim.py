@@ -24,5 +24,11 @@ class ClaimOut(BaseModel):
     claimed_amount: Decimal
     approved_amount: Optional[Decimal]
     status: str
+    fraud_flag: bool
     raised_at: datetime
     decided_at: Optional[datetime]
+
+
+class ClaimDecision(BaseModel):
+    decision: Literal["approved", "rejected"]
+    approved_amount: Optional[Decimal] = None

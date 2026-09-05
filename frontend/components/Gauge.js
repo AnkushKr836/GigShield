@@ -1,21 +1,11 @@
 "use client";
 
-/**
- * The Coverage Barometer — GigShield's signature visual element.
- * A weather-barometer-style arc gauge, deliberately chosen because the product's
- * entire premise is weather/disruption-triggered protection for people who read
- * gauges on the move (speedometers, fuel gauges) rather than dashboards at a desk.
- *
- * percent: 0-100, how much of the current policy week remains
- * status: "safe" | "signal" | "danger" | "neutral" — drives the arc color
- */
 export default function Gauge({ percent = 0, value = "—", label = "COVERAGE", status = "neutral" }) {
   const clamped = Math.max(0, Math.min(100, percent));
   const cx = 100;
   const cy = 100;
   const r = 78;
-  const startAngle = 180; // left
-  const endAngle = 0; // right, sweeping over the top
+  const startAngle = 180;
 
   const toPoint = (angleDeg) => {
     const rad = (angleDeg * Math.PI) / 180;
@@ -33,10 +23,10 @@ export default function Gauge({ percent = 0, value = "—", label = "COVERAGE", 
   const needle = toPoint(sweptAngle);
 
   const statusColor = {
-    safe: "#2F7D5C",
-    signal: "#E8871E",
-    danger: "#B3432B",
-    neutral: "#48566B",
+    safe: "#14B8A6",
+    attention: "#F0A93B",
+    danger: "#EF5B72",
+    neutral: "#1690E0",
   }[status];
 
   const ticks = [0, 25, 50, 75, 100];
@@ -44,7 +34,7 @@ export default function Gauge({ percent = 0, value = "—", label = "COVERAGE", 
   return (
     <div className="flex flex-col items-center">
       <svg viewBox="0 0 200 118" className="w-full max-w-[240px]" role="img" aria-label={`${label}: ${value}`}>
-        <path d={arcPath(180, 0)} fill="none" stroke="#C9D2DB" strokeWidth="12" strokeLinecap="round" />
+        <path d={arcPath(180, 0)} fill="none" stroke="rgba(15,42,67,0.1)" strokeWidth="12" strokeLinecap="round" />
         <path d={arcPath(180, sweptAngle)} fill="none" stroke={statusColor} strokeWidth="12" strokeLinecap="round" />
 
         {ticks.map((t) => {
@@ -52,38 +42,17 @@ export default function Gauge({ percent = 0, value = "—", label = "COVERAGE", 
           const outer = toPoint(angle);
           const inner = { x: cx + (r - 16) * Math.cos((angle * Math.PI) / 180), y: cy - (r - 16) * Math.sin((angle * Math.PI) / 180) };
           return (
-            <line
-              key={t}
-              x1={inner.x}
-              y1={inner.y}
-              x2={outer.x}
-              y2={outer.y}
-              stroke="#1B2430"
-              strokeOpacity="0.15"
-              strokeWidth="2"
-            />
+            <line key={t} x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#0F2A43" strokeOpacity="0.12" strokeWidth="2" />
           );
         })}
 
-        <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke="#1B2430" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r="5" fill="#1B2430" />
+        <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke="#0F2A43" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r="5" fill="#0F2A43" />
 
-        <text
-          x={cx}
-          y={cy - 26}
-          textAnchor="middle"
-          className="font-mono font-semibold"
-          style={{ fontSize: "22px", fill: "#1B2430" }}
-        >
+        <text x={cx} y={cy - 26} textAnchor="middle" className="font-mono font-semibold" style={{ fontSize: "22px", fill: "#0F2A43" }}>
           {value}
         </text>
-        <text
-          x={cx}
-          y={cy - 8}
-          textAnchor="middle"
-          className="font-body"
-          style={{ fontSize: "9px", letterSpacing: "0.12em", fill: "#48566B" }}
-        >
+        <text x={cx} y={cy - 8} textAnchor="middle" className="font-body" style={{ fontSize: "9px", letterSpacing: "0.12em", fill: "#4C7089" }}>
           {label}
         </text>
       </svg>

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
 from app import models  # noqa: F401 — import ensures all models register with Base.metadata
-from app.api import riders, zones, companies, coverage_plans, rides, claims
+from app.api import riders, zones, companies, coverage_plans, rides, claims, analytics
 
 
 @asynccontextmanager
@@ -42,3 +42,4 @@ app.include_router(companies.router)
 app.include_router(coverage_plans.router)
 app.include_router(rides.router)
 app.include_router(claims.router)
+app.include_router(analytics.router)

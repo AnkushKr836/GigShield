@@ -26,6 +26,8 @@ def simulate_rides(
 
 @router.get("/me", response_model=list[RideOut])
 def list_my_rides(
+    limit: int = 5,
+    offset: int = 0,
     db: Session = Depends(get_db),
     current_rider: Rider = Depends(get_current_rider),
 ):
@@ -33,6 +35,8 @@ def list_my_rides(
         db.query(Ride)
         .filter(Ride.rider_id == current_rider.rider_id)
         .order_by(Ride.start_time.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
 

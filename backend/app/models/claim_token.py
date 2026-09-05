@@ -18,6 +18,7 @@ class ClaimToken(Base):
     approved_amount = Column(Numeric(10, 2), nullable=True)
     status = Column(String(20), nullable=False, default="pending")
     # pending | approved | rejected | manual_review
+    fraud_flag = Column(Boolean, nullable=False, default=False)
     raised_at = Column(DateTime(timezone=True), server_default=func.now())
     decided_at = Column(DateTime(timezone=True), nullable=True)
 

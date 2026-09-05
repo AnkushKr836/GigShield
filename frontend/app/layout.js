@@ -1,11 +1,11 @@
-import { Archivo, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Manrope, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import Nav from "@/components/Nav";
+import BackgroundBlobs from "@/components/BackgroundBlobs";
 
-const archivo = Archivo({
+const manrope = Manrope({
   subsets: ["latin"],
   weight: ["600", "700", "800"],
-  variable: "--font-archivo",
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -30,10 +30,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${inter.variable} ${plexMono.variable}`}>
-      <body className="font-body min-h-screen">
-        <Nav />
-        <main className="max-w-md mx-auto px-4 pb-16 pt-6 sm:max-w-lg">{children}</main>
+    <html lang="en" className={`${manrope.variable} ${inter.variable} ${plexMono.variable}`}>
+      <body className="font-body min-h-screen relative">
+        <BackgroundBlobs />
+        {children}
       </body>
     </html>
   );

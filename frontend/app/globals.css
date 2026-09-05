@@ -2,14 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-  .input {
-    @apply w-full px-3 py-2.5 rounded-card border border-line bg-surface text-ink text-sm
-           focus:outline-none focus:border-signal focus:ring-2 focus:ring-signal/20
-           disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
-  }
-}
-
 :root {
   color-scheme: light;
 }
@@ -18,14 +10,48 @@
   box-sizing: border-box;
 }
 
-body {
-  background-color: #E9EDF1;
-  color: #1B2430;
+html, body {
+  min-height: 100%;
 }
 
-/* Visible keyboard focus everywhere — never suppressed */
+body {
+  color: #0F2A43;
+  background: linear-gradient(180deg, #EAF6FF 0%, #DCEFFB 40%, #CFE9FB 100%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 0 8px 32px rgba(15, 42, 67, 0.12);
+  }
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+  }
+  .input {
+    @apply w-full px-3.5 py-2.5 rounded-2xl border border-white/70 bg-white/60 text-ink text-sm
+           backdrop-blur-md placeholder:text-muted/70
+           focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/25
+           disabled:opacity-50 disabled:cursor-not-allowed transition-all;
+  }
+  .btn-primary {
+    @apply px-4 py-3 rounded-2xl bg-primary text-white font-medium shadow-glass
+           hover:bg-primary-dark transition-all disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply px-4 py-3 rounded-2xl border border-white/70 bg-white/40 text-ink font-medium
+           backdrop-blur-md hover:bg-white/60 transition-all;
+  }
+}
+
 :focus-visible {
-  outline: 2px solid #E8871E;
+  outline: 2px solid #1690E0;
   outline-offset: 2px;
   border-radius: 4px;
 }

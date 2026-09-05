@@ -7,6 +7,8 @@ from app.models.rider import Rider
 from app.models.zone import Zone
 from app.models.company import Company
 from app.schemas.rider import RiderCreate, RiderOut, RiderLogin, Token
+from app.schemas.credibility import CredibilityOut
+from app.services.credibility_engine import compute_credibility
 
 router = APIRouter(prefix="/riders", tags=["riders"])
 
@@ -61,3 +63,12 @@ def login_rider(payload: RiderLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=RiderOut)
 def read_current_rider(current_rider: Rider = Depends(get_current_rider)):
     return current_rider
+
+
+@router.get("/me/credibility", response_model=CredibilityOut)
+def read_my_credibility(
+    db: Session = Depends(get_db),
+    current_rider: Rider = Depends(get_current_rider),
+):
+    result = compute_credibility(db, current_rider)
+    return CredibilityOut(score=result["score"], factors=result["factors"])
