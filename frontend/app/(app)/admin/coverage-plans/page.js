@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Pencil, Trash2, Check, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { getAdminToken } from "@/lib/auth";
 
 const TIERS = ["Basic", "Standard", "Premium"];
 
 export default function AdminCoveragePlansPage() {
+  const router = useRouter();
   const [plans, setPlans] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [companyId, setCompanyId] = useState("");
@@ -16,9 +19,14 @@ export default function AdminCoveragePlansPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editTier, setEditTier] = useState("Basic");
+  const [editPayout, setEditPayout] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const token = typeof window !== "undefined" ? getAdminToken() : null;
 
   function load() {
-    Promise.all([api.listCoveragePlans(), api.listCompanies()])
+    Promise.all([api.listCoveragePlans(null, token), api.listCompanies()])
       .then(([planData, companyData]) => {
         setPlans(planData);
         setCompanies(companyData);
@@ -28,7 +36,11 @@ export default function AdminCoveragePlansPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    if (!token) { router.push("/login"); return; }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const companyName = (id) => companies.find((c) => c.company_id === id)?.name || id.slice(0, 8);
 
@@ -37,13 +49,41 @@ export default function AdminCoveragePlansPage() {
     setError("");
     setSubmitting(true);
     try {
-      await api.createCoveragePlan({ company_id: companyId, tier_name: tierName, payout_per_day: Number(payoutPerDay) });
+      await api.createCoveragePlan({ company_id: companyId, tier_name: tierName, payout_per_day: Number(payoutPerDay) }, token);
       setPayoutPerDay("");
       load();
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function startEdit(p) {
+    setEditingId(p.plan_id);
+    setEditTier(p.tier_name);
+    setEditPayout(String(p.payout_per_day));
+  }
+
+  async function saveEdit(id) {
+    setError("");
+    try {
+      await api.updateCoveragePlan(id, { tier_name: editTier, payout_per_day: Number(editPayout) }, token);
+      setEditingId(null);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleDelete(id) {
+    setError("");
+    try {
+      await api.deleteCoveragePlan(id, token);
+      setConfirmDeleteId(null);
+      load();
+    } catch (err) {
+      setError(err.message);
     }
   }
 
@@ -83,11 +123,34 @@ export default function AdminCoveragePlansPage() {
       ) : (
         <ul className="space-y-2">
           {plans.map((p) => (
-            <li key={p.plan_id} className="glass rounded-2xl px-4 py-3 flex justify-between items-center">
-              <div>
-                <p className="text-sm text-ink font-medium">{companyName(p.company_id)} — {p.tier_name}</p>
-              </div>
-              <span className="font-mono text-sm text-ink">₹{p.payout_per_day}/day</span>
+            <li key={p.plan_id} className="glass rounded-2xl px-4 py-3">
+              {editingId === p.plan_id ? (
+                <div className="flex items-center gap-2">
+                  <select value={editTier} onChange={(e) => setEditTier(e.target.value)} className="input flex-1">
+                    {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <input type="number" min="1" value={editPayout} onChange={(e) => setEditPayout(e.target.value)} className="input w-28 shrink-0" />
+                  <button onClick={() => saveEdit(p.plan_id)} className="p-2 rounded-xl bg-safe text-white shrink-0"><Check size={15} /></button>
+                  <button onClick={() => setEditingId(null)} className="p-2 rounded-xl bg-white/60 text-muted shrink-0"><X size={15} /></button>
+                </div>
+              ) : confirmDeleteId === p.plan_id ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink">Remove {companyName(p.company_id)} — {p.tier_name}?</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDelete(p.plan_id)} className="px-3 py-1 rounded-xl bg-danger text-white text-xs font-medium">Confirm</button>
+                    <button onClick={() => setConfirmDeleteId(null)} className="px-3 py-1 rounded-xl bg-white/60 text-muted text-xs font-medium">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-ink font-medium">{companyName(p.company_id)} — {p.tier_name}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-ink">₹{p.payout_per_day}/day</span>
+                    <button onClick={() => startEdit(p)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-white/60 transition-colors"><Pencil size={14} /></button>
+                    <button onClick={() => setConfirmDeleteId(p.plan_id)} className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-white/60 transition-colors"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>

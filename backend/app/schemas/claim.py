@@ -25,6 +25,8 @@ class ClaimOut(BaseModel):
     approved_amount: Optional[Decimal]
     status: str
     fraud_flag: bool
+    verification_source: Optional[str] = None
+    weather_snapshot: Optional[dict] = None
     raised_at: datetime
     decided_at: Optional[datetime]
 

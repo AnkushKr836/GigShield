@@ -5,17 +5,37 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_admin
 from app.models.rider import Rider
 from app.models.ride import Ride
 from app.models.claim_token import ClaimToken
 from app.models.company import Company
-from app.schemas.analytics import AnalyticsSummary, CompanyStat
+from app.schemas.analytics import AnalyticsSummary, CompanyStat, PublicSummary
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 
+@router.get("/public-summary", response_model=PublicSummary)
+def get_public_summary(db: Session = Depends(get_db)):
+    """
+    No auth — deliberately minimal, non-sensitive aggregate for the public
+    landing page (real total instead of a hardcoded ₹0). No per-rider or
+    per-company detail here; that stays behind admin auth in /summary.
+    """
+    total_approved_payout = (
+        db.query(func.coalesce(func.sum(ClaimToken.approved_amount), 0))
+        .filter(ClaimToken.approved_amount.isnot(None))
+        .scalar()
+    )
+    total_riders_covered = db.query(Rider).count()
+    return PublicSummary(
+        total_approved_payout=Decimal(total_approved_payout),
+        total_riders_covered=total_riders_covered,
+    )
+
+
 @router.get("/summary", response_model=AnalyticsSummary)
-def get_analytics_summary(db: Session = Depends(get_db)):
+def get_analytics_summary(db: Session = Depends(get_db), _admin: str = Depends(get_current_admin)):
     total_riders = db.query(Rider).count()
     total_rides = db.query(Ride).count()
     all_claims = db.query(ClaimToken).all()

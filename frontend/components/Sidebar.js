@@ -1,30 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, Bike, ShieldCheck, Settings, User, LogOut,
-  ChevronRight, ChevronLeft, Shield, BarChart3,
+  LayoutDashboard, Bike, ShieldCheck, User, LogOut,
+  ChevronRight, ChevronLeft, Shield,
+  Users, Building2, MapPin, Layers, ClipboardCheck, BarChart3,
 } from "lucide-react";
-import { clearToken } from "@/lib/auth";
+import { clearToken, clearAdminToken, getAdminToken } from "@/lib/auth";
 
-const NAV_ITEMS = [
+const RIDER_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rides", label: "Rides", icon: Bike },
   { href: "/claims", label: "Claims", icon: ShieldCheck },
-  { href: "/admin", label: "Admin", icon: Settings },
+];
+
+const ADMIN_NAV = [
+  { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/employees", label: "Employees", icon: Users },
+  { href: "/admin/companies", label: "Companies", icon: Building2 },
+  { href: "/admin/zones", label: "Zones", icon: MapPin },
+  { href: "/admin/coverage-plans", label: "Coverage Plans", icon: Layers },
+  { href: "/admin/claims", label: "Claims Review", icon: ClipboardCheck },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
 export default function Sidebar() {
   const [expanded, setExpanded] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    setIsAdmin(!!getAdminToken());
+  }, [pathname]);
+
+  const navItems = isAdmin ? ADMIN_NAV : RIDER_NAV;
+
   function handleLogout() {
-    clearToken();
-    router.push("/");
+    if (isAdmin) {
+      clearAdminToken();
+      router.push("/login");
+    } else {
+      clearToken();
+      router.push("/");
+    }
   }
 
   return (
@@ -32,14 +53,15 @@ export default function Sidebar() {
       className={`fixed left-0 top-0 h-screen z-20 flex flex-col glass border-r border-white/60
         transition-all duration-300 ease-out ${expanded ? "w-56" : "w-[76px]"}`}
     >
-      {/* Logo + extend toggle */}
       <div className="flex items-center justify-between px-4 py-5">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="shrink-0 w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-glass">
             <Shield size={18} color="white" strokeWidth={2.4} />
           </div>
           {expanded && (
-            <span className="font-display font-extrabold text-ink text-base whitespace-nowrap">GigShield</span>
+            <span className="font-display font-extrabold text-ink text-base whitespace-nowrap">
+              GigShield{isAdmin && <span className="text-primary"> Admin</span>}
+            </span>
           )}
         </div>
       </div>
@@ -52,11 +74,10 @@ export default function Sidebar() {
         {expanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
       </button>
 
-      {/* Nav items */}
-      <nav className="flex-1 flex flex-col gap-1 px-3 mt-4">
-        {NAV_ITEMS.map((item) => {
+      <nav className="flex-1 flex flex-col gap-1 px-3 mt-4 overflow-y-auto">
+        {navItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active = pathname === item.href;
           return (
             <Link
               key={item.href}
@@ -73,18 +94,19 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Account + Logout */}
       <div className="px-3 pb-5 flex flex-col gap-1">
-        <Link
-          href="/account"
-          title={!expanded ? "Account" : undefined}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all
-            ${pathname === "/account" ? "bg-primary text-white shadow-glass" : "text-ink hover:bg-white/50"}
-            ${expanded ? "" : "justify-center"}`}
-        >
-          <User size={19} strokeWidth={2} className="shrink-0" />
-          {expanded && <span className="text-sm font-medium whitespace-nowrap">Account</span>}
-        </Link>
+        {!isAdmin && (
+          <Link
+            href="/account"
+            title={!expanded ? "Account" : undefined}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all
+              ${pathname === "/account" ? "bg-primary text-white shadow-glass" : "text-ink hover:bg-white/50"}
+              ${expanded ? "" : "justify-center"}`}
+          >
+            <User size={19} strokeWidth={2} className="shrink-0" />
+            {expanded && <span className="text-sm font-medium whitespace-nowrap">Account</span>}
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           title={!expanded ? "Log out" : undefined}

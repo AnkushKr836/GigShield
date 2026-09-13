@@ -1,7 +1,13 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
-import { Building2, MapPin, Layers, ClipboardCheck, BarChart3, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Building2, MapPin, Layers, ClipboardCheck, BarChart3, Users, ArrowRight } from "lucide-react";
+import { getAdminToken } from "@/lib/auth";
 
 const SECTIONS = [
+  { href: "/admin/employees", label: "Employees", desc: "Browse riders and their credibility scores", icon: Users },
   { href: "/admin/companies", label: "Companies", desc: "Add delivery companies that purchase coverage", icon: Building2 },
   { href: "/admin/zones", label: "Zones", desc: "Add geographic zones for disruption tracking", icon: MapPin },
   { href: "/admin/coverage-plans", label: "Coverage Plans", desc: "Set payout tiers per company", icon: Layers },
@@ -10,11 +16,17 @@ const SECTIONS = [
 ];
 
 export default function AdminHubPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!getAdminToken()) router.push("/login");
+  }, [router]);
+
   return (
     <div>
       <h1 className="font-display font-bold text-2xl text-ink mb-1">Admin</h1>
       <p className="text-muted text-sm mb-6">
-        No login required in this prototype — this panel is used for seeding demo data and reviewing claims.
+        Seed demo data, review flagged claims, and check coverage analytics.
       </p>
 
       <div className="space-y-3">

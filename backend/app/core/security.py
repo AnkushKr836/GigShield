@@ -46,3 +46,29 @@ def get_current_rider(token: str = Depends(oauth2_scheme), db: Session = Depends
     if rider is None:
         raise credentials_exception
     return rider
+
+
+def create_admin_access_token() -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {"sub": "admin", "role": "admin", "exp": expire}
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def get_current_admin(token: str = Depends(oauth2_scheme)) -> str:
+    """
+    Distinct from get_current_rider: checks for role=admin in the token
+    rather than looking up a Rider row, since the admin account isn't a
+    database record in this prototype (see settings.ADMIN_USERNAME/PASSWORD).
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Admin authentication required.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("role") != "admin":
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    return "admin"

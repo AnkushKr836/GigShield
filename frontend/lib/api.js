@@ -32,14 +32,22 @@ export const api = {
   getMe: (token) => request("/riders/me", { token }),
   getMyCredibility: (token) => request("/riders/me/credibility", { token }),
 
+  adminLogin: (payload) => request("/admin/login", { method: "POST", body: payload }),
+
   listZones: () => request("/zones/"),
-  createZone: (payload) => request("/zones/", { method: "POST", body: payload }),
+  createZone: (payload, token) => request("/zones/", { method: "POST", body: payload, token }),
+  updateZone: (id, payload, token) => request(`/zones/${id}`, { method: "PATCH", body: payload, token }),
+  deleteZone: (id, token) => request(`/zones/${id}`, { method: "DELETE", token }),
 
   listCompanies: () => request("/companies/"),
-  createCompany: (payload) => request("/companies/", { method: "POST", body: payload }),
+  createCompany: (payload, token) => request("/companies/", { method: "POST", body: payload, token }),
+  updateCompany: (id, payload, token) => request(`/companies/${id}`, { method: "PATCH", body: payload, token }),
+  deleteCompany: (id, token) => request(`/companies/${id}`, { method: "DELETE", token }),
 
-  listCoveragePlans: (companyId) => request(`/coverage-plans/${companyId ? `?company_id=${companyId}` : ""}`),
-  createCoveragePlan: (payload) => request("/coverage-plans/", { method: "POST", body: payload }),
+  listCoveragePlans: (companyId, token) => request(`/coverage-plans/${companyId ? `?company_id=${companyId}` : ""}`, { token }),
+  createCoveragePlan: (payload, token) => request("/coverage-plans/", { method: "POST", body: payload, token }),
+  updateCoveragePlan: (id, payload, token) => request(`/coverage-plans/${id}`, { method: "PATCH", body: payload, token }),
+  deleteCoveragePlan: (id, token) => request(`/coverage-plans/${id}`, { method: "DELETE", token }),
 
   listMyRides: (token, limit = 5, offset = 0) => request(`/rides/me?limit=${limit}&offset=${offset}`, { token }),
   getRide: (rideId, token) => request(`/rides/${rideId}`, { token }),
@@ -47,10 +55,14 @@ export const api = {
 
   raiseClaim: (payload, token) => request("/claims/", { method: "POST", body: payload, token }),
   listMyClaims: (token) => request("/claims/me", { token }),
-  listManualReviewClaims: () => request("/claims/manual-review"),
-  decideClaim: (tokenId, payload) => request(`/claims/${tokenId}/decision`, { method: "PATCH", body: payload }),
+  listManualReviewClaims: (token) => request("/claims/manual-review", { token }),
+  decideClaim: (tokenId, payload, token) => request(`/claims/${tokenId}/decision`, { method: "PATCH", body: payload, token }),
 
-  getAnalyticsSummary: () => request("/analytics/summary"),
+  getAnalyticsSummary: (token) => request("/analytics/summary", { token }),
+  getPublicSummary: () => request("/analytics/public-summary"),
+
+  listEmployees: (token) => request("/admin/employees/", { token }),
+  seedEmployees: (count, token) => request("/admin/employees/seed", { method: "POST", body: { count }, token }),
 };
 
 export { ApiError };

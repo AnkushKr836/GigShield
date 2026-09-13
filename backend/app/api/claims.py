@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import get_current_rider
+from app.core.security import get_current_rider, get_current_admin
 from app.models.rider import Rider
 from app.models.ride import Ride
 from app.models.claim_token import ClaimToken
@@ -60,6 +60,8 @@ def raise_claim(
         approved_amount=final_approved_amount,
         status=final_status,
         fraud_flag=is_frequent,
+        verification_source=decision["verification_source"],
+        weather_snapshot=decision["weather_snapshot"],
         decided_at=datetime.now(timezone.utc) if final_status not in ("pending", "manual_review") else None,
     )
     db.add(claim)
@@ -86,7 +88,7 @@ def list_my_claims(
 
 
 @router.get("/manual-review", response_model=list[ClaimOut])
-def list_manual_review_claims(db: Session = Depends(get_db)):
+def list_manual_review_claims(db: Session = Depends(get_db), _admin: str = Depends(get_current_admin)):
     """
     Admin queue. No auth yet (matches the rest of the admin surface for this
     prototype). Sorted so the LOWEST-credibility riders' claims surface
@@ -112,6 +114,7 @@ def decide_claim(
     token_id: str,
     payload: ClaimDecision,
     db: Session = Depends(get_db),
+    _admin: str = Depends(get_current_admin),
 ):
     """Admin manually approves or rejects a claim currently in manual_review."""
     claim = db.query(ClaimToken).filter(ClaimToken.token_id == token_id).first()

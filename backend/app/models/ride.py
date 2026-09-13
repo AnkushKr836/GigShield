@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, func
+from sqlalchemy import Column, String, Numeric, Float, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -13,7 +13,11 @@ class Ride(Base):
     company_id = Column(String(36), ForeignKey("company.company_id"), nullable=False)
     zone_id = Column(String(36), ForeignKey("zone.zone_id"), nullable=False)
     pickup_location = Column(String(150), nullable=False)
+    pickup_lat = Column(Float, nullable=True)
+    pickup_lng = Column(Float, nullable=True)
     drop_location = Column(String(150), nullable=False)
+    drop_lat = Column(Float, nullable=True)
+    drop_lng = Column(Float, nullable=True)
     start_time = Column(DateTime(timezone=True), nullable=False)
     end_time = Column(DateTime(timezone=True), nullable=False)
     fare_amount = Column(Numeric(10, 2), nullable=False)

@@ -10,6 +10,11 @@ class CompanyStat(BaseModel):
     total_payout: Decimal
 
 
+class PublicSummary(BaseModel):
+    total_approved_payout: Decimal
+    total_riders_covered: int
+
+
 class AnalyticsSummary(BaseModel):
     total_riders: int
     total_rides: int

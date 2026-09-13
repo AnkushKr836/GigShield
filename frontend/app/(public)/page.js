@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { CloudRain, ShieldCheck, Zap } from "lucide-react";
 import Gauge from "@/components/Gauge";
+import { api } from "@/lib/api";
 
-export default function Home() {
+export default async function Home() {
+  let totalProtected = 0;
+  try {
+    const summary = await api.getPublicSummary();
+    totalProtected = summary.total_approved_payout;
+  } catch {
+    // Backend unreachable at build/request time — fall back to 0 rather than crash the landing page.
+    totalProtected = 0;
+  }
+
   return (
     <div className="pt-6">
       <p className="font-mono text-xs tracking-widest text-muted uppercase mb-3">
@@ -19,7 +29,12 @@ export default function Home() {
       </p>
 
       <div className="glass rounded-card p-6 mb-8">
-        <Gauge percent={100} value="₹0" label="EARNINGS PROTECTED SO FAR" status="neutral" />
+        <Gauge
+          percent={100}
+          value={`₹${totalProtected}`}
+          label="EARNINGS PROTECTED SO FAR"
+          status={totalProtected > 0 ? "safe" : "neutral"}
+        />
       </div>
 
       <div className="flex flex-col gap-3 mb-10">

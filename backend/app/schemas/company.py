@@ -1,8 +1,14 @@
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
 class CompanyCreate(BaseModel):
     name: str
+
+
+class CompanyUpdate(BaseModel):
+    name: Optional[str] = None
 
 
 class CompanyOut(BaseModel):

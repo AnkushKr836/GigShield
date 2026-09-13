@@ -2,20 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
+import { getAdminToken } from "@/lib/auth";
 
-const STATUS_COLORS = {
-  approved: "bg-safe", rejected: "bg-danger", manual_review: "bg-attention", pending: "bg-muted",
-};
+const STATUS_COLORS = { approved: "bg-safe", rejected: "bg-danger", manual_review: "bg-attention", pending: "bg-muted" };
 
 export default function AdminAnalyticsPage() {
+  const router = useRouter();
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getAnalyticsSummary().then(setSummary).catch((err) => setError(err.message)).finally(() => setLoading(false));
+    const token = getAdminToken();
+    if (!token) { router.push("/login"); return; }
+    api.getAnalyticsSummary(token).then(setSummary).catch((err) => setError(err.message)).finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <p className="text-muted text-sm pt-8">Loading analytics…</p>;
@@ -58,10 +62,7 @@ export default function AdminAnalyticsPage() {
                 <span>{count}</span>
               </div>
               <div className="h-2 rounded-full bg-white/50 overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${STATUS_COLORS[status] || "bg-muted"}`}
-                  style={{ width: `${(count / maxStatusCount) * 100}%` }}
-                />
+                <div className={`h-full rounded-full ${STATUS_COLORS[status] || "bg-muted"}`} style={{ width: `${(count / maxStatusCount) * 100}%` }} />
               </div>
             </div>
           ))}

@@ -2,31 +2,39 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { getAdminToken } from "@/lib/auth";
 
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
 export default function AdminClaimsReviewPage() {
+  const router = useRouter();
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [decidingId, setDecidingId] = useState(null);
+  const token = typeof window !== "undefined" ? getAdminToken() : null;
 
   function load() {
     setLoading(true);
-    api.listManualReviewClaims().then(setClaims).catch((err) => setError(err.message)).finally(() => setLoading(false));
+    api.listManualReviewClaims(token).then(setClaims).catch((err) => setError(err.message)).finally(() => setLoading(false));
   }
 
-  useEffect(load, []);
+  useEffect(() => {
+    if (!token) { router.push("/login"); return; }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleDecision(tokenId, decision, claimedAmount) {
     setDecidingId(tokenId);
     setError("");
     try {
-      await api.decideClaim(tokenId, { decision, approved_amount: decision === "approved" ? claimedAmount : undefined });
+      await api.decideClaim(tokenId, { decision, approved_amount: decision === "approved" ? claimedAmount : undefined }, token);
       load();
     } catch (err) {
       setError(err.message);

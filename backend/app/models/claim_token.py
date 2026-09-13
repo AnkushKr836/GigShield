@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Numeric, Boolean, DateTime, ForeignKey, func
+from sqlalchemy import Column, String, Text, Numeric, Boolean, DateTime, JSON, ForeignKey, func
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -19,6 +19,8 @@ class ClaimToken(Base):
     status = Column(String(20), nullable=False, default="pending")
     # pending | approved | rejected | manual_review
     fraud_flag = Column(Boolean, nullable=False, default=False)
+    verification_source = Column(String(30), nullable=True)  # fabricated_disruption | real_weather | None
+    weather_snapshot = Column(JSON, nullable=True)  # raw weather_service result, if a real check was made
     raised_at = Column(DateTime(timezone=True), server_default=func.now())
     decided_at = Column(DateTime(timezone=True), nullable=True)
 

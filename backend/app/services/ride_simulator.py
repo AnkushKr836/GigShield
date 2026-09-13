@@ -6,36 +6,44 @@ from sqlalchemy.orm import Session
 
 from app.models.ride import Ride
 from app.models.disruption_event import DisruptionEvent
+from app.services.chennai_locations import RESTAURANTS, DROP_LOCATIONS
 
-LOCATIONS = [
-    "MG Road", "Anna Nagar", "T Nagar", "Velachery", "Adyar",
-    "Nungambakkam", "Guindy", "Porur", "Tambaram", "Mylapore",
-]
+# Restricted to the last 2 days so a real, no-card, free-tier weather API
+# (current conditions only, no historical lookup) can meaningfully check
+# conditions close to when the ride actually happened.
+MAX_HOURS_AGO = 48
 
 
 def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
     """
-    Creates `count` fabricated completed rides for a rider, spread over the
-    past 10 days, plus one fabricated disruption event overlapping the
-    earliest ride's window — so at least one ride has a real (if fabricated)
-    disruption to claim against in the demo.
+    Creates `count` fabricated completed rides for a rider, using real named
+    Chennai restaurants (pickup) and real named neighborhoods (drop) with
+    real coordinates — spread over the last 48 hours — plus one fabricated
+    disruption event overlapping the earliest ride's window, so at least
+    one ride has something to claim against even before any real weather
+    check is layered on top.
     """
     now = datetime.now(timezone.utc)
     rides = []
 
     for i in range(count):
-        days_ago = random.randint(0, 9)
-        start = now - timedelta(days=days_ago, hours=random.randint(0, 20))
+        start = now - timedelta(hours=random.uniform(0, MAX_HOURS_AGO))
         duration_minutes = random.randint(20, 75)
         end = start + timedelta(minutes=duration_minutes)
-        pickup, drop = random.sample(LOCATIONS, 2)
+
+        pickup = random.choice(RESTAURANTS)
+        drop = random.choice(DROP_LOCATIONS)
 
         ride = Ride(
             rider_id=rider.rider_id,
             company_id=rider.company_id,
             zone_id=rider.zone_id,
-            pickup_location=pickup,
-            drop_location=drop,
+            pickup_location=pickup["name"],
+            pickup_lat=pickup["lat"],
+            pickup_lng=pickup["lng"],
+            drop_location=drop["name"],
+            drop_lat=drop["lat"],
+            drop_lng=drop["lng"],
             start_time=start,
             end_time=end,
             fare_amount=Decimal(random.randint(80, 350)),
@@ -47,7 +55,8 @@ def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
     db.flush()  # assigns ride_ids without committing yet
 
     # Seed one fabricated disruption event overlapping the earliest ride,
-    # so the demo can show at least one claim auto-approve.
+    # so the demo can show at least one claim auto-approve even without
+    # depending on real, live weather at the moment of verification.
     earliest = min(rides, key=lambda r: r.start_time)
     event = DisruptionEvent(
         zone_id=rider.zone_id,
