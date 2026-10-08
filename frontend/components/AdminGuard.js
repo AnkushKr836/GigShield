@@ -2,18 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAdminToken } from "@/lib/auth";
+import { clearAdminToken, getToken, isAdminTokenValid } from "@/lib/auth";
 
 export default function AdminGuard({ children }) {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    if (getAdminToken()) {
+    const handleUnauthorized = () => {
+      setAuthorized(false);
+      router.replace("/login");
+    };
+    window.addEventListener("gigshield:admin-unauthorized", handleUnauthorized);
+
+    if (isAdminTokenValid() && !getToken()) {
       setAuthorized(true);
     } else {
+      clearAdminToken();
       router.replace("/login");
     }
+
+    return () => window.removeEventListener("gigshield:admin-unauthorized", handleUnauthorized);
   }, [router]);
 
   // Renders nothing — not even the page shell — until an admin token is

@@ -8,7 +8,7 @@ from app.models.zone import Zone
 from app.models.company import Company
 from app.schemas.rider import RiderCreate, RiderOut, RiderLogin, Token
 from app.schemas.credibility import CredibilityOut
-from app.services.credibility_engine import compute_credibility
+from app.services.credibility_engine import compute_credibility, compute_and_store_credibility
 
 router = APIRouter(prefix="/riders", tags=["riders"])
 
@@ -44,6 +44,9 @@ def register_rider(payload: RiderCreate, db: Session = Depends(get_db)):
     db.add(rider)
     db.commit()
     db.refresh(rider)
+    # Persist an initial credibility record so the admin employee list and
+    # rider account both show the new account's 90% starting score.
+    compute_and_store_credibility(db, rider)
     return rider
 
 

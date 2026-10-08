@@ -13,6 +13,7 @@ class CompanyStat(BaseModel):
 class PublicSummary(BaseModel):
     total_approved_payout: Decimal
     total_riders_covered: int
+    platform_credibility_score: int  # 0-1000, like a CIBIL-style aggregate trust score
 
 
 class AnalyticsSummary(BaseModel):

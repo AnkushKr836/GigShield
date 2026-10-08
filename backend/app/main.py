@@ -4,14 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
+from app.core.database import SessionLocal
 from app import models  # noqa: F401 — import ensures all models register with Base.metadata
 from app.api import riders, zones, companies, coverage_plans, rides, claims, analytics, admin_employees, admin_auth
+from app.services.zone_seeder import seed_default_zones
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Dev/demo convenience: auto-creates tables if they don't exist.
     Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        seed_default_zones(db)
     yield
 
 

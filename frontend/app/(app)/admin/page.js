@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, MapPin, Layers, ClipboardCheck, BarChart3, Users, ArrowRight } from "lucide-react";
+import { Building2, MapPin, Layers, ClipboardCheck, BarChart3, Users, ArrowRight, ShieldCheck } from "lucide-react";
 import { getAdminToken } from "@/lib/auth";
 
 const SECTIONS = [
@@ -23,31 +23,31 @@ export default function AdminHubPage() {
   }, [router]);
 
   return (
-    <div>
-      <h1 className="font-display font-bold text-2xl text-ink mb-1">Admin</h1>
-      <p className="text-muted text-sm mb-6">
-        Seed demo data, review flagged claims, and check coverage analytics.
-      </p>
+    <div className="space-y-6">
+      <section className="glass-strong relative overflow-hidden rounded-[2rem] p-6 sm:p-8">
+        <div className="absolute -right-12 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative flex items-start gap-4"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white shadow-glass"><ShieldCheck size={22}/></span><div><p className="eyebrow">Operations console</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink">Admin workspace</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">Manage company-funded coverage, participating rider zones, and the claims that need a human decision.</p></div></div>
+      </section>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {SECTIONS.map((s) => {
           const Icon = s.icon;
           return (
             <Link
               key={s.href}
               href={s.href}
-              className="flex items-center justify-between glass rounded-card p-5 hover:bg-white/70 transition-colors"
+              className="glass glass-hover group flex min-h-36 items-center justify-between rounded-card p-5 sm:p-6"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-primary/15 flex items-center justify-center">
-                  <Icon size={19} className="text-primary" />
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-white to-primary/10 text-primary shadow-sm transition-transform group-hover:scale-105">
+                  <Icon size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-ink">{s.label}</p>
-                  <p className="text-xs text-muted mt-0.5">{s.desc}</p>
+                  <p className="font-display font-semibold text-ink">{s.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{s.desc}</p>
                 </div>
               </div>
-              <ArrowRight size={16} className="text-muted" />
+              <ArrowRight size={16} className="ml-2 shrink-0 text-muted transition-all group-hover:translate-x-1 group-hover:text-primary" />
             </Link>
           );
         })}

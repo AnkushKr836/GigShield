@@ -97,7 +97,7 @@ def test_full_rider_flow_with_claim():
     assert resp.status_code == 201, resp.text
     claim = resp.json()
     assert claim["status"] == "approved"
-    assert float(claim["approved_amount"]) == 300.0  # matches the Basic tier payout_per_day
+    assert float(claim["approved_amount"]) == 250.0  # claimed amount, since 250 < the 300 daily cap
 
     # Duplicate claim on the same ride should be rejected
     resp = client.post("/claims/", headers=headers, json={
@@ -406,3 +406,84 @@ def test_claim_falls_back_to_manual_review_when_weather_unavailable():
     claim = resp.json()
     assert claim["status"] == "manual_review"
     assert claim["verification_source"] is None
+
+
+def test_daily_coverage_cap_partial_award():
+    """
+    Matches the exact scenario: a ₹250/day plan, rider already has ₹180
+    approved today, raises a new claim for ₹100 -> only ₹70 should be
+    awarded, with a written explanation.
+    """
+    from unittest.mock import patch
+
+    zone_id, company_id = _seed()
+    db = SessionLocal()
+    plan = db.query(CoveragePlan).filter(CoveragePlan.company_id == company_id).first()
+    plan.payout_per_day = 250
+    db.commit()
+    db.close()
+
+    resp = client.post("/riders/register", json={
+        "name": "Cap Test Rider", "email": "captest@example.com", "phone": "9666600001",
+        "password": "supersecret123", "persona_type": "food_delivery",
+        "company_id": company_id, "zone_id": zone_id,
+    })
+    assert resp.status_code == 201
+    resp = client.post("/riders/login", json={"email": "captest@example.com", "password": "supersecret123"})
+    headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+    resp = client.post("/rides/simulate", headers=headers)
+    rides = sorted(resp.json(), key=lambda r: r["start_time"])
+    earliest_ride = rides[0]   # overlaps the fabricated disruption -> auto-approves
+    another_ride = rides[-1]   # doesn't overlap -> needs the mocked weather signal
+
+    # First claim: 180 out of a 250 cap -> fully approved
+    resp = client.post("/claims/", headers=headers, json={
+        "ride_id": earliest_ride["ride_id"], "disruption_type": "environmental",
+        "description": "First claim of the day, well under the cap.", "claimed_amount": 180,
+    })
+    assert resp.status_code == 201, resp.text
+    assert float(resp.json()["approved_amount"]) == 180.0
+
+    # Second claim: 100 more, but only 70 remains under the 250 cap
+    with patch("app.services.claim_engine.get_current_weather") as mock_weather:
+        mock_weather.return_value = {"condition_code": 502, "description": "heavy rain", "temp_c": 26.0, "is_disruptive": True}
+        resp = client.post("/claims/", headers=headers, json={
+            "ride_id": another_ride["ride_id"], "disruption_type": "environmental",
+            "description": "Second claim, should be capped.", "claimed_amount": 100,
+        })
+    assert resp.status_code == 201, resp.text
+    claim = resp.json()
+    assert claim["status"] == "approved"
+    assert float(claim["approved_amount"]) == 70.0
+    assert claim["payout_note"] is not None
+    assert "70" in claim["payout_note"]
+
+
+def test_claim_detail_endpoint():
+    zone_id, company_id = _seed()
+    resp = client.post("/riders/register", json={
+        "name": "Detail Test Rider", "email": "detailtest@example.com", "phone": "9666600002",
+        "password": "supersecret123", "persona_type": "food_delivery",
+        "company_id": company_id, "zone_id": zone_id,
+    })
+    resp = client.post("/riders/login", json={"email": "detailtest@example.com", "password": "supersecret123"})
+    rider_headers = {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+    resp = client.post("/rides/simulate", headers=rider_headers)
+    rides = sorted(resp.json(), key=lambda r: r["start_time"])
+    earliest_ride = rides[0]
+
+    resp = client.post("/claims/", headers=rider_headers, json={
+        "ride_id": earliest_ride["ride_id"], "disruption_type": "environmental",
+        "description": "Detail endpoint test claim.", "claimed_amount": 50,
+    })
+    token_id = resp.json()["token_id"]
+
+    resp = client.get(f"/claims/{token_id}/detail", headers=_admin_headers())
+    assert resp.status_code == 200, resp.text
+    detail = resp.json()
+    assert detail["ride"]["ride_id"] == earliest_ride["ride_id"]
+    assert detail["ride"]["pickup_lat"] is not None
+    assert detail["rider_name"] == "Detail Test Rider"
+    assert "rider_credibility_score" in detail

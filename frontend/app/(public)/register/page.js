@@ -54,7 +54,7 @@ export default function RegisterPage() {
   const noOptionsAvailable = !loadingOptions && (zones.length === 0 || companies.length === 0) && !error;
 
   return (
-    <div className="pt-4">
+    <div className="mx-auto max-w-2xl pt-4">
       <h1 className="font-display font-bold text-2xl text-ink mb-1">Get covered</h1>
       <p className="text-muted text-sm mb-6">Takes about a minute. No documents needed.</p>
 
@@ -92,7 +92,7 @@ export default function RegisterPage() {
           </Field>
           <Field label="Your zone">
             <select required value={form.zone_id} onChange={update("zone_id")} className="input" disabled={zones.length === 0}>
-              {zones.map((z) => <option key={z.zone_id} value={z.zone_id}>{z.name}</option>)}
+              {zones.map((z) => <option key={z.zone_id} value={z.zone_id}>{z.name} · {z.risk_tier} risk</option>)}
             </select>
           </Field>
 

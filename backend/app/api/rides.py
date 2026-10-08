@@ -19,8 +19,8 @@ def simulate_rides(
 ):
     """
     Demo-only: generates fabricated completed rides for the current rider,
-    plus one fabricated disruption event so at least one ride has something
-    real to claim against. Not a real ride/trip integration.
+    plus clearly labelled prototype weather, traffic, and curfew fixtures
+    for deterministic claim demos. Not a real ride/trip integration.
     """
     return simulate_rides_for_rider(db, current_rider)
 

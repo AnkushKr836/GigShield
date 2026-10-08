@@ -10,6 +10,7 @@ from app.models.rider import Rider
 from app.models.ride import Ride
 from app.models.claim_token import ClaimToken
 from app.models.company import Company
+from app.models.credibility_score import CredibilityScore
 from app.schemas.analytics import AnalyticsSummary, CompanyStat, PublicSummary
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -19,8 +20,10 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 def get_public_summary(db: Session = Depends(get_db)):
     """
     No auth — deliberately minimal, non-sensitive aggregate for the public
-    landing page (real total instead of a hardcoded ₹0). No per-rider or
-    per-company detail here; that stays behind admin auth in /summary.
+    landing page. platform_credibility_score is the average of every
+    rider's MOST RECENT credibility score, scaled to a 0-1000 range (a
+    CIBIL-style presentation) — a real platform-wide trust metric, not a
+    stand-in for any individual rider's own score.
     """
     total_approved_payout = (
         db.query(func.coalesce(func.sum(ClaimToken.approved_amount), 0))
@@ -28,9 +31,26 @@ def get_public_summary(db: Session = Depends(get_db)):
         .scalar()
     )
     total_riders_covered = db.query(Rider).count()
+
+    riders = db.query(Rider).all()
+    latest_scores = []
+    for r in riders:
+        latest = (
+            db.query(CredibilityScore)
+            .filter(CredibilityScore.rider_id == r.rider_id)
+            .order_by(CredibilityScore.computed_at.desc())
+            .first()
+        )
+        if latest:
+            latest_scores.append(float(latest.score_value))
+
+    avg_score = sum(latest_scores) / len(latest_scores) if latest_scores else 0.0
+    platform_credibility_score = round(avg_score * 1000)
+
     return PublicSummary(
         total_approved_payout=Decimal(total_approved_payout),
         total_riders_covered=total_riders_covered,
+        platform_credibility_score=platform_credibility_score,
     )
 
 

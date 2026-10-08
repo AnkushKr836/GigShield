@@ -30,13 +30,13 @@ export default function AdminAnalyticsPage() {
   const maxCompanyClaims = Math.max(1, ...summary.by_company.map((c) => c.claim_count));
 
   return (
-    <div>
+    <div className="space-y-6">
       <Link href="/admin" className="text-sm text-muted hover:text-primary transition-colors flex items-center gap-1 mb-3">
         <ArrowLeft size={15} /> Back to admin
       </Link>
-      <h1 className="font-display font-bold text-2xl text-ink mb-6">Analytics</h1>
+      <section className="glass-strong rounded-[2rem] p-5 sm:p-7"><p className="eyebrow">Coverage operations</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink">Analytics</h1><p className="mt-1 text-sm text-muted">An overview of enrolled riders, delivery activity, claim outcomes, and approved payouts.</p></section>
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Riders" value={summary.total_riders} />
         <Stat label="Rides" value={summary.total_rides} />
         <Stat label="Claims" value={summary.total_claims} />
@@ -52,8 +52,9 @@ export default function AdminAnalyticsPage() {
         </div>
       )}
 
-      <div className="glass rounded-card p-5 mb-6">
-        <h2 className="text-sm font-medium text-ink mb-4">Claims by status</h2>
+      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="glass rounded-card p-5 sm:p-6">
+        <h2 className="font-display font-semibold text-ink">Claims by status</h2><p className="mb-5 mt-1 text-xs text-muted">Distribution of all recorded claim decisions.</p>
         <div className="space-y-3">
           {Object.entries(summary.claims_by_status).map(([status, count]) => (
             <div key={status}>
@@ -69,8 +70,8 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-      <div className="glass rounded-card p-5">
-        <h2 className="text-sm font-medium text-ink mb-4">By company</h2>
+      <div className="glass rounded-card p-5 sm:p-6">
+        <h2 className="font-display font-semibold text-ink">Company activity</h2><p className="mb-5 mt-1 text-xs text-muted">Claim volume and payout totals by covered workforce.</p>
         {summary.by_company.length === 0 ? (
           <p className="text-sm text-muted">No claims recorded against any company yet.</p>
         ) : (
@@ -89,13 +90,14 @@ export default function AdminAnalyticsPage() {
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
 
 function Stat({ label, value }) {
   return (
-    <div className="glass rounded-2xl p-4">
+    <div className="glass glass-hover rounded-2xl p-4 sm:p-5">
       <p className="font-mono text-xl font-semibold text-ink">{value}</p>
       <p className="text-xs text-muted mt-0.5">{label}</p>
     </div>

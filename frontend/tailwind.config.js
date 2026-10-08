@@ -7,19 +7,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ink: "#0F2A43",
-        muted: "#4C7089",
+        ink: "#263343",
+        muted: "#6c7c8c",
         primary: {
-          DEFAULT: "#1690E0",
-          dark: "#0F72B8",
+          DEFAULT: "#587d9b",
+          dark: "#172a43",
         },
         attention: {
-          DEFAULT: "#F0A93B",
-          dark: "#C98A20",
+          DEFAULT: "#aa8959",
+          dark: "#80653e",
         },
-        safe: "#14B8A6",
-        danger: "#EF5B72",
-        line: "rgba(15, 42, 67, 0.12)",
+        safe: "#577c69",
+        danger: "#9b626b",
+        line: "rgba(38, 51, 67, 0.12)",
         glass: "rgba(255, 255, 255, 0.55)",
         "glass-strong": "rgba(255, 255, 255, 0.72)",
         "glass-border": "rgba(255, 255, 255, 0.65)",
@@ -37,8 +37,8 @@ module.exports = {
         glass: "24px",
       },
       boxShadow: {
-        glass: "0 8px 32px rgba(15, 42, 67, 0.12)",
-        "glass-lg": "0 16px 48px rgba(15, 42, 67, 0.16)",
+        glass: "0 8px 28px rgba(31, 51, 72, 0.11)",
+        "glass-lg": "0 16px 42px rgba(31, 51, 72, 0.15)",
       },
     },
   },

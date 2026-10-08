@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.claim_token import ClaimToken
 from app.models.credibility_score import CredibilityScore
 
-BASELINE = Decimal("0.75")
+BASELINE = Decimal("0.90")
 TENURE_BONUS_CAP = Decimal("0.15")  # up to +0.15 for a long-standing rider
 POOR_HISTORY_PENALTY_CAP = Decimal("0.35")  # up to -0.35 for a bad claim history
 

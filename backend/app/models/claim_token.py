@@ -19,8 +19,9 @@ class ClaimToken(Base):
     status = Column(String(20), nullable=False, default="pending")
     # pending | approved | rejected | manual_review
     fraud_flag = Column(Boolean, nullable=False, default=False)
-    verification_source = Column(String(30), nullable=True)  # fabricated_disruption | real_weather | None
+    verification_source = Column(String(30), nullable=True)  # real_weather | demo_weather/traffic/curfew | fabricated_disruption
     weather_snapshot = Column(JSON, nullable=True)  # raw weather_service result, if a real check was made
+    payout_note = Column(Text, nullable=True)  # written explanation when the daily coverage cap reduced the payout
     raised_at = Column(DateTime(timezone=True), server_default=func.now())
     decided_at = Column(DateTime(timezone=True), nullable=True)
 

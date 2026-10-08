@@ -5,8 +5,9 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.ride import Ride
-from app.models.disruption_event import DisruptionEvent
 from app.services.chennai_locations import RESTAURANTS, DROP_LOCATIONS
+from app.services.demo_disruptions import seed_demo_disruptions
+from app.services.demo_claim_seeder import seed_demo_auto_claims
 
 # Restricted to the last 2 days so a real, no-card, free-tier weather API
 # (current conditions only, no historical lookup) can meaningfully check
@@ -18,10 +19,8 @@ def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
     """
     Creates `count` fabricated completed rides for a rider, using real named
     Chennai restaurants (pickup) and real named neighborhoods (drop) with
-    real coordinates — spread over the last 48 hours — plus one fabricated
-    disruption event overlapping the earliest ride's window, so at least
-    one ride has something to claim against even before any real weather
-    check is layered on top.
+    real coordinates — spread over the last 48 hours — plus clearly labelled
+    prototype weather, traffic, and curfew events overlapping sample rides.
     """
     now = datetime.now(timezone.utc)
     rides = []
@@ -54,23 +53,16 @@ def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
 
     db.flush()  # assigns ride_ids without committing yet
 
-    # Seed one fabricated disruption event overlapping the earliest ride,
-    # so the demo can show at least one claim auto-approve even without
-    # depending on real, live weather at the moment of verification.
-    earliest = min(rides, key=lambda r: r.start_time)
-    event = DisruptionEvent(
-        zone_id=rider.zone_id,
-        disruption_type="environmental",
-        subtype="heavy_rain",
-        severity="high",
-        start_time=earliest.start_time - timedelta(minutes=15),
-        end_time=earliest.end_time + timedelta(minutes=15),
-        source="demo_seed",
-        raw_payload={"note": "Fabricated for prototype demonstration — not a real weather reading."},
-    )
-    db.add(event)
+    # Also backfill prior generated rides that predate the fixture rollout, so
+    # an existing synthetic ride can exercise the updated claim flow too.
+    rider_rides = db.query(Ride).filter(Ride.rider_id == rider.rider_id).all()
+    seed_demo_disruptions(db, rider_rides)
 
     db.commit()
+    # Generate visible, clearly labelled accepted examples through the same
+    # claim engine. No claim/payout is fabricated if the company has no active
+    # coverage plan or the normal frequency review rule applies.
+    seed_demo_auto_claims(db, rider, rides)
     for r in rides:
         db.refresh(r)
     return rides

@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -27,6 +27,7 @@ class ClaimOut(BaseModel):
     fraud_flag: bool
     verification_source: Optional[str] = None
     weather_snapshot: Optional[dict] = None
+    payout_note: Optional[str] = None
     raised_at: datetime
     decided_at: Optional[datetime]
 
@@ -34,3 +35,26 @@ class ClaimOut(BaseModel):
 class ClaimDecision(BaseModel):
     decision: Literal["approved", "rejected"]
     approved_amount: Optional[Decimal] = None
+
+
+class RideSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    ride_id: str
+    pickup_location: str
+    pickup_lat: Optional[float] = None
+    pickup_lng: Optional[float] = None
+    drop_location: str
+    drop_lat: Optional[float] = None
+    drop_lng: Optional[float] = None
+    start_time: datetime
+    end_time: datetime
+    fare_amount: Decimal
+
+
+class ClaimDetailOut(ClaimOut):
+    ride: RideSummary
+    rider_name: str
+    rider_email: str
+    rider_credibility_score: Optional[float] = None
+    disruption_signals: list[dict[str, Any]] = Field(default_factory=list)

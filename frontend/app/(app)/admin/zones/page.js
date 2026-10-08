@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, Trash2, Check, X } from "lucide-react";
+import { ArrowLeft, MapPin, Pencil, Search, Trash2, Check, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAdminToken } from "@/lib/auth";
 
@@ -22,6 +22,7 @@ export default function AdminZonesPage() {
   const [editName, setEditName] = useState("");
   const [editTier, setEditTier] = useState("medium");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [search, setSearch] = useState("");
   const token = typeof window !== "undefined" ? getAdminToken() : null;
 
   function load() {
@@ -77,35 +78,39 @@ export default function AdminZonesPage() {
     }
   }
 
+  const visibleZones = zones.filter((zone) => `${zone.name} ${zone.risk_tier}`.toLowerCase().includes(search.toLowerCase()));
+
   return (
-    <div>
+    <div className="space-y-6">
       <Link href="/admin" className="text-sm text-muted hover:text-primary transition-colors flex items-center gap-1 mb-3">
         <ArrowLeft size={15} /> Back to admin
       </Link>
-      <h1 className="font-display font-bold text-2xl text-ink mb-6">Zones</h1>
-
-      <form onSubmit={handleSubmit} className="glass rounded-card p-5 flex gap-2 mb-6">
-        <input required value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Zone name, e.g. Chennai Central" />
-        <select value={riskTier} onChange={(e) => setRiskTier(e.target.value)} className="input w-32 shrink-0">
-          {RISK_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <button type="submit" disabled={submitting} className="btn-primary shrink-0 px-5">
-          {submitting ? "Adding…" : "Add"}
-        </button>
-      </form>
+      <section className="glass-strong rounded-[2rem] p-5 sm:p-7">
+        <p className="eyebrow">Coverage geography</p><h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink">Zones</h1><p className="mt-1 text-sm text-muted">Organize the service areas used by riders and disruption checks.</p>
+        <form onSubmit={handleSubmit} className="mt-5 grid gap-3 rounded-2xl border border-white/80 bg-white/45 p-3 sm:grid-cols-[1fr_10rem_auto]">
+          <input required value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Zone name, e.g. Chennai Central" />
+          <select value={riskTier} onChange={(e) => setRiskTier(e.target.value)} className="input">
+            {RISK_TIERS.map((t) => <option key={t} value={t}>{t} risk</option>)}
+          </select>
+          <button type="submit" disabled={submitting} className="btn-primary shrink-0 px-5">{submitting ? "Adding…" : "Add zone"}</button>
+        </form>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs"><span className="rounded-pill bg-safe/10 px-3 py-1.5 text-safe">{zones.filter((zone) => zone.risk_tier === "low").length} low risk</span><span className="rounded-pill bg-attention/15 px-3 py-1.5 text-attention-dark">{zones.filter((zone) => zone.risk_tier === "medium").length} medium risk</span><span className="rounded-pill bg-danger/10 px-3 py-1.5 text-danger">{zones.filter((zone) => zone.risk_tier === "high").length} high risk</span></div>
+      </section>
 
       {error && <p className="text-sm text-danger bg-danger/10 rounded-2xl px-3 py-2 mb-4">{error}</p>}
 
       {loading ? (
         <p className="text-sm text-muted">Loading…</p>
       ) : zones.length === 0 ? (
-        <p className="text-sm text-muted">No zones yet — add one above.</p>
+        <div className="glass rounded-card p-8 text-center"><MapPin size={22} className="mx-auto mb-2 text-primary"/><p className="font-medium text-ink">No zones configured</p><p className="mt-1 text-sm text-muted">Add a service area above to get started.</p></div>
       ) : (
-        <ul className="space-y-2">
-          {zones.map((z) => (
-            <li key={z.zone_id} className="glass rounded-2xl px-4 py-3">
+        <section className="glass rounded-card p-4 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display font-semibold text-ink">Service areas</h2><p className="mt-1 text-xs text-muted">Risk tier provides context for coverage and review.</p></div><label className="relative w-full sm:max-w-xs"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"/><input className="input pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search zones"/></label></div>
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visibleZones.map((z) => (
+            <li key={z.zone_id} className="list-row p-4">
               {editingId === z.zone_id ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input value={editName} onChange={(e) => setEditName(e.target.value)} className="input flex-1" />
                   <select value={editTier} onChange={(e) => setEditTier(e.target.value)} className="input w-28 shrink-0">
                     {RISK_TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -122,8 +127,8 @@ export default function AdminZonesPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-ink font-medium">{z.name}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MapPin size={18}/></span><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{z.name}</p><p className="mt-0.5 text-[10px] text-muted">Service area</p></div></div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${TIER_STYLES[z.risk_tier]}`}>{z.risk_tier}</span>
                     <button onClick={() => startEdit(z)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-white/60 transition-colors"><Pencil size={14} /></button>
@@ -134,6 +139,8 @@ export default function AdminZonesPage() {
             </li>
           ))}
         </ul>
+        {visibleZones.length === 0 && <p className="py-8 text-center text-sm text-muted">No zones match “{search}”.</p>}
+        </section>
       )}
     </div>
   );

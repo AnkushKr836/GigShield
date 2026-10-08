@@ -57,7 +57,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="pt-4">
+    <div className="mx-auto max-w-lg pt-4">
       <h1 className="font-display font-bold text-2xl text-ink mb-1">
         {mode === "rider" ? "Log in" : "Admin login"}
       </h1>

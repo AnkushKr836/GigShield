@@ -5,16 +5,17 @@ from sqlalchemy.orm import Session
 from app.models.disruption_event import DisruptionEvent
 from app.models.coverage_plan import CoveragePlan
 from app.services.weather_service import get_current_weather
+from app.services.coverage_cap import compute_capped_payout
 
 
 def find_matching_disruption(db: Session, ride, disruption_type: str) -> DisruptionEvent | None:
     """
     A claim is considered verified if there's a Disruption_Event in the
     ride's zone, of the claimed type, whose time window overlaps the ride's
-    time window. Checked FIRST because it's deterministic and needs no
-    network call — the real-weather check below is a secondary signal.
+    time window. The deterministic event is checked alongside a live weather
+    signal for environmental claims.
     """
-    return (
+    candidates = (
         db.query(DisruptionEvent)
         .filter(
             DisruptionEvent.zone_id == ride.zone_id,
@@ -22,8 +23,19 @@ def find_matching_disruption(db: Session, ride, disruption_type: str) -> Disrupt
             DisruptionEvent.start_time <= ride.end_time,
             (DisruptionEvent.end_time.is_(None)) | (DisruptionEvent.end_time >= ride.start_time),
         )
-        .first()
+        .all()
     )
+    # Demo signals are explicitly attached to one synthetic ride. Do not let
+    # a nearby ride's fixture validate this ride just because their windows
+    # overlap in the same zone.
+    for event in candidates:
+        payload = event.raw_payload or {}
+        if payload.get("demo") and payload.get("ride_id") == ride.ride_id:
+            return event
+    for event in candidates:
+        if not (event.raw_payload or {}).get("demo"):
+            return event
+    return None
 
 
 def check_real_weather(ride, disruption_type: str) -> dict | None:
@@ -60,30 +72,59 @@ def get_company_payout_rate(db: Session, company_id: str) -> Decimal | None:
     return plan.payout_per_day if plan else None
 
 
-def assess_claim(db: Session, ride, disruption_type: str) -> dict:
+def assess_claim(db: Session, ride, disruption_type: str, claimed_amount: Decimal) -> dict:
     """
     Returns the decision: status, matched event (if any), approved amount
-    (if any), which source verified it, and the raw weather data (if a
-    real check was made) for transparency on the claim record.
+    (if any, after applying the daily coverage cap), a written note when
+    the cap reduced the payout, which source verified it, and the raw
+    weather data (if a real check was made) for transparency.
     """
     event = find_matching_disruption(db, ride, disruption_type)
-    verification_source = "fabricated_disruption" if event else None
-    weather_result = None
+    # Check live weather for every environmental claim, even when a demo or
+    # admin-seeded event overlaps. This records the current signal for
+    # transparency; demo events remain a deterministic fallback when the
+    # real provider is unavailable or conditions are not disruptive.
+    weather_result = check_real_weather(ride, disruption_type)
+    simulated_weather = None
+    if event and event.source == "demo_weather":
+        simulated_weather = {
+            "condition_code": 502,
+            "description": "heavy rain",
+            "temp_c": 23.4,
+            "is_disruptive": True,
+            "simulated": True,
+            "source": "prototype_fixture",
+            "details": (event.raw_payload or {}).get("details", {}),
+            "live_check": weather_result,
+        }
 
-    if event is None:
-        # No fabricated match — try a real, live weather check as a
-        # secondary signal before falling back to manual review.
-        weather_result = check_real_weather(ride, disruption_type)
+    if weather_result and weather_result["is_disruptive"]:
+        verification_source = "real_weather"
+    elif event and event.source in {"demo_weather", "demo_traffic", "demo_curfew"}:
+        verification_source = event.source
+    elif event:
+        verification_source = "fabricated_disruption"
+    else:
+        verification_source = None
+
+    # Preserve the real provider result when it confirms disruption. When it
+    # is clear or unavailable, retain the matched demo weather as the claim's
+    # explicit prototype evidence instead of making weather look absent.
+    claim_weather_snapshot = weather_result
+    if simulated_weather:
         if weather_result and weather_result["is_disruptive"]:
-            verification_source = "real_weather"
+            claim_weather_snapshot = {**weather_result, "demo_fixture": simulated_weather}
+        else:
+            claim_weather_snapshot = simulated_weather
 
     if verification_source is None:
         return {
             "status": "manual_review",
-            "event_id": None,
+            "event_id": event.event_id if event else None,
             "approved_amount": None,
+            "payout_note": None,
             "verification_source": None,
-            "weather_snapshot": weather_result,
+            "weather_snapshot": claim_weather_snapshot,
         }
 
     payout_rate = get_company_payout_rate(db, ride.company_id)
@@ -94,14 +135,18 @@ def assess_claim(db: Session, ride, disruption_type: str) -> dict:
             "status": "manual_review",
             "event_id": event.event_id if event else None,
             "approved_amount": None,
+            "payout_note": None,
             "verification_source": verification_source,
-            "weather_snapshot": weather_result,
+            "weather_snapshot": claim_weather_snapshot,
         }
+
+    cap_result = compute_capped_payout(db, ride.rider_id, ride.company_id, payout_rate, claimed_amount)
 
     return {
         "status": "approved",
         "event_id": event.event_id if event else None,
-        "approved_amount": payout_rate,
+        "approved_amount": cap_result["approved_amount"],
+        "payout_note": cap_result["payout_note"],
         "verification_source": verification_source,
-        "weather_snapshot": weather_result,
+        "weather_snapshot": claim_weather_snapshot,
     }

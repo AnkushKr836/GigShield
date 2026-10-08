@@ -1,3 +1,5 @@
+import { clearAdminToken, getAdminToken } from "@/lib/auth";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 class ApiError extends Error {
@@ -21,6 +23,12 @@ async function request(path, { method = "GET", body, token } = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    if (res.status === 401 && token && token === getAdminToken()) {
+      clearAdminToken();
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("gigshield:admin-unauthorized"));
+      }
+    }
     throw new ApiError(data.detail || "Something went wrong. Please try again.", res.status);
   }
   return data;
@@ -51,11 +59,14 @@ export const api = {
 
   listMyRides: (token, limit = 5, offset = 0) => request(`/rides/me?limit=${limit}&offset=${offset}`, { token }),
   getRide: (rideId, token) => request(`/rides/${rideId}`, { token }),
+  getRideWeather: (rideId, token) => request(`/rides/${rideId}/weather`, { token }),
   simulateRides: (token) => request("/rides/simulate", { method: "POST", token }),
 
   raiseClaim: (payload, token) => request("/claims/", { method: "POST", body: payload, token }),
   listMyClaims: (token) => request("/claims/me", { token }),
   listManualReviewClaims: (token) => request("/claims/manual-review", { token }),
+  listAdminClaims: (token) => request("/claims/admin", { token }),
+  getClaimDetail: (tokenId, token) => request(`/claims/${tokenId}/detail`, { token }),
   decideClaim: (tokenId, payload, token) => request(`/claims/${tokenId}/decision`, { method: "PATCH", body: payload, token }),
 
   getAnalyticsSummary: (token) => request("/analytics/summary", { token }),
