@@ -33,6 +33,20 @@ An exploratory parametric-insurance prototype for gig delivery riders. Delivery 
 
 GigShield follows a **company-purchases, rider-receives** coverage model. Riders do not buy policies themselves. A configured company coverage plan determines the potential payout for an eligible disruption.
 
+## 🖥️ Screenshots
+
+### Homepage
+
+![GigShield homepage](docs/screenshots/homepage.png)
+
+### Rider dashboard
+
+![GigShield rider dashboard showing income protection and delivery activity](docs/screenshots/rider-dashboard.png)
+
+### Admin dashboard
+
+![GigShield admin dashboard for company coverage and claim operations](docs/screenshots/admin-dashboard.png)
+
 ## 🧭 How a claim moves through the prototype
 
 ```mermaid
