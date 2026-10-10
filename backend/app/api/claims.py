@@ -1,27 +1,85 @@
 from datetime import datetime, timezone
+import time
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.database import get_db, SessionLocal
 from app.core.security import get_current_rider, get_current_admin
 from app.models.rider import Rider
 from app.models.ride import Ride
 from app.models.claim_token import ClaimToken
-from app.schemas.claim import ClaimCreate, ClaimOut, ClaimDecision, ClaimDetailOut
+from app.schemas.claim import ClaimCreate, ClaimOut, ClaimDecision, ClaimDetailOut, ClaimProgressOut
 from app.services.claim_engine import assess_claim, get_company_payout_rate
 from app.services.payout_service import create_payout_for_claim
 from app.services.credibility_engine import compute_credibility
 from app.services.fraud_service import check_claim_frequency
 from app.services.coverage_cap import compute_capped_payout
 from app.services.demo_disruptions import list_disruptions_for_ride
+from app.models.claim_review import ClaimReviewJob, ClaimReviewCheckpoint
+from app.models.claim_risk_analysis import ClaimRiskAnalysis
+from app.services.claim_risk_model import analyze_claim_risk
 
 router = APIRouter(prefix="/claims", tags=["claims"])
+
+REVIEW_STEPS = [
+    ("Claim received", "Your delivery and claim details have been recorded."),
+    ("Coverage checked", "Checking the company policy and daily payout limit."),
+    ("Disruption evidence", "Matching the reported disruption to available evidence."),
+    ("Ride details checked", "Reviewing delivery time, location and account signals."),
+    ("Decision prepared", "Preparing the automatic decision or review handoff."),
+    ("Review complete", "Saving the decision and creating any approved payout."),
+]
+
+
+def process_claim_review(token_id: str):
+    """Prototype review timeline: persisted checkpoints over at least 30 seconds."""
+    try:
+        for index, (label, _) in enumerate(REVIEW_STEPS):
+            with SessionLocal() as session:
+                checkpoints = session.query(ClaimReviewCheckpoint).filter_by(token_id=token_id).all()
+                if not checkpoints:
+                    return
+                for checkpoint in checkpoints:
+                    checkpoint.status = "completed" if checkpoint.step_order < index else ("in_progress" if checkpoint.step_order == index else "waiting")
+                session.commit()
+            time.sleep(6)
+
+        with SessionLocal() as session:
+            claim = session.query(ClaimToken).filter_by(token_id=token_id).first()
+            job = session.query(ClaimReviewJob).filter_by(token_id=token_id).first()
+            if not claim or not job:
+                return
+            result = job.result
+            claim.status = result["status"]
+            claim.event_id = result.get("event_id")
+            claim.approved_amount = result.get("approved_amount")
+            claim.payout_note = result.get("payout_note")
+            claim.verification_source = result.get("verification_source")
+            claim.weather_snapshot = result.get("weather_snapshot")
+            claim.fraud_flag = bool(result.get("fraud_flag"))
+            session.add(ClaimRiskAnalysis(token_id=claim.token_id, result=result.get("risk_analysis") or {}))
+            claim.decided_at = datetime.now(timezone.utc) if claim.status not in ("pending", "manual_review") else None
+            for checkpoint in session.query(ClaimReviewCheckpoint).filter_by(token_id=token_id).all():
+                checkpoint.status = "completed"
+            session.delete(job)
+            session.commit()
+            if claim.status == "approved":
+                create_payout_for_claim(session, claim)
+    except Exception:
+        # Keep the claim and checkpoints available for transparent admin follow-up.
+        with SessionLocal() as session:
+            claim = session.query(ClaimToken).filter_by(token_id=token_id).first()
+            if claim and claim.status == "processing":
+                claim.status = "manual_review"
+                claim.payout_note = "Automated review was interrupted; routed to an administrator."
+                session.commit()
 
 
 @router.post("/", response_model=ClaimOut, status_code=status.HTTP_201_CREATED)
 def raise_claim(
     payload: ClaimCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_rider: Rider = Depends(get_current_rider),
 ):
@@ -51,6 +109,7 @@ def raise_claim(
     # prototype fixture is intentionally repeatable and should demonstrate
     # the automatic decision path even on an account with older claims.
     is_frequent = False if has_demo_evidence else check_claim_frequency(db, current_rider.rider_id)
+    risk_analysis = analyze_claim_risk(db, ride)
 
     # A frequency flag downgrades an auto-approval to manual review rather
     # than silently approving — it never auto-rejects, matching the
@@ -62,30 +121,56 @@ def raise_claim(
         final_status = "manual_review"
         final_approved_amount = None
         final_payout_note = None
+    if risk_analysis.get("available") and risk_analysis.get("risk") == "elevated" and final_status == "approved":
+        final_status = "manual_review"
+        final_approved_amount = None
+        final_payout_note = "An unusual ride pattern was detected by the prototype anomaly model; an administrator will review it. This is not a fraud finding."
 
     claim = ClaimToken(
         rider_id=current_rider.rider_id,
         ride_id=ride.ride_id,
-        event_id=decision["event_id"],
+        event_id=None,
         disruption_type=payload.disruption_type,
         description=payload.description,
         claimed_amount=payload.claimed_amount,
-        approved_amount=final_approved_amount,
-        status=final_status,
-        fraud_flag=is_frequent,
-        verification_source=decision["verification_source"],
-        weather_snapshot=decision["weather_snapshot"],
-        payout_note=final_payout_note,
-        decided_at=datetime.now(timezone.utc) if final_status not in ("pending", "manual_review") else None,
+        approved_amount=None,
+        status="processing",
+        fraud_flag=False,
+        verification_source=None,
+        weather_snapshot=None,
+        payout_note=None,
+        decided_at=None,
     )
     db.add(claim)
     db.commit()
     db.refresh(claim)
-
-    if claim.status == "approved":
-        create_payout_for_claim(db, claim)
+    result = {
+        **decision,
+        "status": final_status,
+        "approved_amount": str(final_approved_amount) if final_approved_amount is not None else None,
+        "payout_note": final_payout_note,
+        "fraud_flag": is_frequent,
+        "risk_analysis": risk_analysis,
+    }
+    db.add(ClaimReviewJob(token_id=claim.token_id, result=result))
+    for order, (label, detail) in enumerate(REVIEW_STEPS):
+        db.add(ClaimReviewCheckpoint(token_id=claim.token_id, step_order=order, label=label, detail=detail))
+    db.commit()
+    background_tasks.add_task(process_claim_review, claim.token_id)
 
     return claim
+
+
+@router.get("/{token_id}/progress", response_model=ClaimProgressOut)
+def get_claim_progress(token_id: str, db: Session = Depends(get_db), current_rider: Rider = Depends(get_current_rider)):
+    claim = db.query(ClaimToken).filter_by(token_id=token_id, rider_id=current_rider.rider_id).first()
+    if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found.")
+    checkpoints = db.query(ClaimReviewCheckpoint).filter_by(token_id=token_id).order_by(ClaimReviewCheckpoint.step_order).all()
+    return {"token_id": token_id, "status": claim.status, "checkpoints": [
+        {"label": item.label, "detail": item.detail, "status": item.status, "updated_at": item.updated_at}
+        for item in checkpoints
+    ]}
 
 
 @router.get("/me", response_model=list[ClaimOut])
@@ -167,6 +252,7 @@ def get_claim_detail(token_id: str, db: Session = Depends(get_db), _admin: str =
             }
         )
 
+    risk_row = db.query(ClaimRiskAnalysis).filter_by(token_id=claim.token_id).first()
     return ClaimDetailOut(
         token_id=claim.token_id,
         rider_id=claim.rider_id,
@@ -188,6 +274,7 @@ def get_claim_detail(token_id: str, db: Session = Depends(get_db), _admin: str =
         rider_email=claim.rider.email,
         rider_credibility_score=float(cred_result["score"]),
         disruption_signals=disruption_signals,
+        risk_analysis=risk_row.result if risk_row else None,
     )
 
 

@@ -11,6 +11,7 @@ const FILTERS = [
   { id: "all", label: "All claims" },
   { id: "approved", label: "Approved" },
   { id: "manual_review", label: "In review" },
+  { id: "processing", label: "Processing" },
   { id: "rejected", label: "Not approved" },
 ];
 const STATES = {
@@ -18,6 +19,7 @@ const STATES = {
   rejected: { label: "Not approved", className: "bg-danger/15 text-danger", icon: TriangleAlert },
   manual_review: { label: "In review", className: "bg-attention/20 text-attention-dark", icon: Clock3 },
   pending: { label: "Pending", className: "bg-white/70 text-muted", icon: Clock3 },
+  processing: { label: "Processing", className: "bg-primary/10 text-primary", icon: Clock3 },
 };
 
 function money(value) {
@@ -47,7 +49,7 @@ export default function ClaimsPage() {
   const visibleClaims = useMemo(() => filter === "all" ? claims : claims.filter((claim) => claim.status === filter), [claims, filter]);
   const approved = claims.filter((claim) => claim.status === "approved");
   const totalPaid = approved.reduce((sum, claim) => sum + Number(claim.approved_amount || 0), 0);
-  const inReview = claims.filter((claim) => ["pending", "manual_review"].includes(claim.status)).length;
+  const inReview = claims.filter((claim) => ["processing", "pending", "manual_review"].includes(claim.status)).length;
 
   if (loading) return <p className="pt-8 text-sm text-muted">Loading your claims…</p>;
 
@@ -98,7 +100,7 @@ export default function ClaimsPage() {
                 <p className="mt-4 border-t border-ink/[0.07] pt-3 text-sm leading-relaxed text-muted">{claim.description}</p>
                 {claim.payout_note && <p className="mt-3 rounded-xl bg-primary/5 px-3 py-2 text-xs leading-relaxed text-ink">{claim.payout_note}</p>}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-ink/[0.07] pt-3">
-                  <span className="text-[11px] text-muted">{claim.verification_source ? `Verified with ${claim.verification_source.replaceAll("_", " ")}` : "Decision pending verification"}</span>
+                  <span className="text-[11px] text-muted">{claim.status === "processing" ? "Review checkpoints are running" : claim.verification_source ? `Verified with ${claim.verification_source.replaceAll("_", " ")}` : "Decision pending verification"}</span>
                   <Link href={`/rides/${claim.ride_id}`} className="text-xs font-medium text-primary hover:underline">View delivery details <ArrowUpRight className="ml-0.5 inline" size={13} /></Link>
                 </div>
               </li>;

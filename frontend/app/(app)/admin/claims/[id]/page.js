@@ -26,6 +26,7 @@ export default function AdminClaimDetailPage() {
   const router = useRouter();
   const params = useParams();
   const [claim, setClaim] = useState(null);
+  const [route, setRoute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deciding, setDeciding] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +34,12 @@ export default function AdminClaimDetailPage() {
 
   useEffect(() => {
     if (!token) { router.push("/login"); return; }
-    api.getClaimDetail(params.id, token).then(setClaim).catch((err) => setError(err.message)).finally(() => setLoading(false));
+    api.getClaimDetail(params.id, token).then((data) => {
+      setClaim(data);
+      if (data.ride?.ride_id) {
+        api.getAdminRideRoute(data.ride.ride_id, token).then(setRoute).catch(() => setRoute(null));
+      }
+    }).catch((err) => setError(err.message)).finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -77,6 +83,8 @@ export default function AdminClaimDetailPage() {
         </div>
       )}
 
+      {claim.risk_analysis && <section className="glass rounded-2xl p-4 sm:p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-muted">ML decision support</p><h2 className="mt-1 font-display font-semibold text-ink">Ride pattern analysis</h2></div><span className={`rounded-pill px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ${claim.risk_analysis.risk === "elevated" ? "bg-attention/20 text-attention-dark" : claim.risk_analysis.available ? "bg-safe/10 text-safe" : "bg-white/70 text-muted"}`}>{claim.risk_analysis.risk}</span></div><p className="mt-2 text-xs leading-relaxed text-muted">{claim.risk_analysis.note}</p>{claim.risk_analysis.available && <p className="mt-3 text-[11px] text-muted">Compared {claim.risk_analysis.history_count} rides · {claim.risk_analysis.features.ride_minutes} min · ₹{claim.risk_analysis.features.fare_amount} fare · {claim.risk_analysis.features.straight_line_km} km endpoint distance · anomaly score {claim.risk_analysis.score}</p>}</section>}
+
       {hasCoords && (
         <div className="glass rounded-card p-3">
           <RouteMap
@@ -86,6 +94,9 @@ export default function AdminClaimDetailPage() {
             dropLat={claim.ride.drop_lat}
             dropLng={claim.ride.drop_lng}
             dropLabel={claim.ride.drop_location}
+            routePoints={route?.available ? route.points : null}
+            routeSource={route?.source}
+            routeDisclaimer={route?.disclaimer || route?.reason}
           />
         </div>
       )}

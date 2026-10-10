@@ -36,6 +36,7 @@ export default function RideDetailPage() {
   const [ride, setRide] = useState(null);
   const [claim, setClaim] = useState(null);
   const [weather, setWeather] = useState(null);
+  const [route, setRoute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -48,6 +49,7 @@ export default function RideDetailPage() {
         setRide(rideData);
         setClaim(claims.find((c) => c.ride_id === rideData.ride_id) || null);
         setWeather(weatherData);
+        api.getRideRoute(params.id, token).then(setRoute).catch(() => setRoute(null));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -85,6 +87,9 @@ export default function RideDetailPage() {
             dropLat={ride.drop_lat}
             dropLng={ride.drop_lng}
             dropLabel={ride.drop_location}
+            routePoints={route?.available ? route.points : null}
+            routeSource={route?.source}
+            routeDisclaimer={route?.disclaimer || route?.reason}
           />
         </div>
       )}

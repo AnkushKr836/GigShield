@@ -3,10 +3,12 @@ venv/
 __pycache__/
 *.pyc
 .env
+backend/data/*.joblib
 
 # Node
 node_modules/
 .next/
+.next*/
 .env.local
 
 # OS

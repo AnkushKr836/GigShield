@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models.ride import Ride
-from app.services.chennai_locations import RESTAURANTS, DROP_LOCATIONS
+from app.services.chennai_locations import nearby_location_pairs, display_location
 from app.services.demo_disruptions import seed_demo_disruptions
 from app.services.demo_claim_seeder import seed_demo_auto_claims
 
@@ -13,13 +13,14 @@ from app.services.demo_claim_seeder import seed_demo_auto_claims
 # (current conditions only, no historical lookup) can meaningfully check
 # conditions close to when the ride actually happened.
 MAX_HOURS_AGO = 48
+MAX_DEMO_RIDE_MINUTES = 20
 
 
-def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
+def simulate_rides_for_rider(db: Session, rider, count: int = 6) -> list[Ride]:
     """
     Creates `count` fabricated completed rides for a rider, using real named
-    Chennai restaurants (pickup) and real named neighborhoods (drop) with
-    real coordinates — spread over the last 48 hours — plus clearly labelled
+    Chennai restaurants (pickup) and hotels, campuses or universities (drop)
+    with approximate venue coordinates — spread over the last 48 hours — plus clearly labelled
     prototype weather, traffic, and curfew events overlapping sample rides.
     """
     now = datetime.now(timezone.utc)
@@ -27,20 +28,19 @@ def simulate_rides_for_rider(db: Session, rider, count: int = 14) -> list[Ride]:
 
     for i in range(count):
         start = now - timedelta(hours=random.uniform(0, MAX_HOURS_AGO))
-        duration_minutes = random.randint(20, 75)
+        duration_minutes = random.randint(5, MAX_DEMO_RIDE_MINUTES)
         end = start + timedelta(minutes=duration_minutes)
 
-        pickup = random.choice(RESTAURANTS)
-        drop = random.choice(DROP_LOCATIONS)
+        pickup, drop = random.choice(nearby_location_pairs())
 
         ride = Ride(
             rider_id=rider.rider_id,
             company_id=rider.company_id,
             zone_id=rider.zone_id,
-            pickup_location=pickup["name"],
+            pickup_location=display_location(pickup),
             pickup_lat=pickup["lat"],
             pickup_lng=pickup["lng"],
-            drop_location=drop["name"],
+            drop_location=display_location(drop),
             drop_lat=drop["lat"],
             drop_lng=drop["lng"],
             start_time=start,

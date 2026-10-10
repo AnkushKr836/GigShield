@@ -10,6 +10,7 @@ class Settings:
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     OPENWEATHERMAP_API_KEY: str = os.getenv("OPENWEATHERMAP_API_KEY", "")
+    TOMTOM_ROUTING_API_KEY: str = os.getenv("TOMTOM_ROUTING_API_KEY", "")
 
     # Single hardcoded admin account — prototype scope, see README for how to change these.
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")

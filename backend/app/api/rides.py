@@ -8,6 +8,7 @@ from app.models.ride import Ride
 from app.schemas.ride import RideOut
 from app.services.ride_simulator import simulate_rides_for_rider
 from app.services.weather_service import get_current_weather
+from app.services.tomtom_routing import get_historical_route
 
 router = APIRouter(prefix="/rides", tags=["rides"])
 
@@ -85,3 +86,20 @@ def get_ride_weather(
     if weather is None:
         return {"available": False, "reason": "Live weather check unavailable right now."}
     return {"available": True, **weather}
+
+
+@router.get("/{ride_id}/route")
+def get_ride_route(
+    ride_id: str,
+    db: Session = Depends(get_db),
+    current_rider: Rider = Depends(get_current_rider),
+):
+    """Return an estimated TomTom driving route for this rider's demo ride."""
+    ride = (
+        db.query(Ride)
+        .filter(Ride.ride_id == ride_id, Ride.rider_id == current_rider.rider_id)
+        .first()
+    )
+    if not ride:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ride not found.")
+    return get_historical_route(ride)

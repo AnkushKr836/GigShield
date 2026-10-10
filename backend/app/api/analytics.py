@@ -85,3 +85,27 @@ def get_analytics_summary(db: Session = Depends(get_db), _admin: str = Depends(g
         claims_by_status=claims_by_status,
         by_company=by_company,
     )
+
+
+@router.get("/stress-test")
+def get_stress_test(db: Session = Depends(get_db), _admin: str = Depends(get_current_admin)):
+    """Read-only prototype exposure scenarios; does not create claims or payouts."""
+    rides = db.query(Ride).count()
+    paid = [float(c.approved_amount) for c in db.query(ClaimToken).filter(ClaimToken.status == "approved").all() if c.approved_amount]
+    typical_payout = sorted(paid)[len(paid) // 2] if paid else 150.0
+    scenarios = []
+    for label, rate in (("Light disruption", 0.05), ("Elevated disruption", 0.15), ("Severe disruption", 0.30)):
+        estimated_claims = round(rides * rate)
+        scenarios.append({
+            "label": label,
+            "disruption_rate": rate,
+            "estimated_claims": estimated_claims,
+            "estimated_exposure": round(estimated_claims * typical_payout, 2),
+        })
+    return {
+        "ride_count": rides,
+        "payout_basis": "median approved payout" if paid else "₹150 prototype assumption (no approved payout history)",
+        "typical_payout": round(typical_payout, 2),
+        "scenarios": scenarios,
+        "note": "Illustrative scenarios based on current ride volume; not an actuarial forecast and no records were changed.",
+    }

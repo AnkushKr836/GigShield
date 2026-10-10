@@ -24,6 +24,7 @@ class EmployeeListItem(BaseModel):
     phone: str
     persona_type: str
     company_name: str
+    zone_id: str
     zone_name: str
     joined_on: str
     credibility_score: Optional[float] = None

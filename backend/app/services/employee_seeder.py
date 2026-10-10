@@ -11,7 +11,8 @@ from app.models.claim_token import ClaimToken
 from app.models.company import Company
 from app.models.zone import Zone
 from app.services.credibility_engine import compute_and_store_credibility
-from app.services.chennai_locations import RESTAURANTS, DROP_LOCATIONS
+from app.services.chennai_locations import nearby_location_pairs, display_location
+from app.services.demo_disruptions import seed_demo_disruptions
 
 FIRST_NAMES = [
     "Arjun", "Priya", "Vikram", "Ananya", "Rahul", "Sneha", "Karthik", "Divya",
@@ -50,17 +51,16 @@ def _fabricate_history_for_rider(db: Session, rider, num_rides: int, num_claims:
     for _ in range(num_rides):
         days_ago = random.randint(1, 120)
         start = datetime.now(timezone.utc) - timedelta(days=days_ago, hours=random.randint(0, 20))
-        end = start + timedelta(minutes=random.randint(20, 75))
-        pickup = random.choice(RESTAURANTS)
-        drop = random.choice(DROP_LOCATIONS)
+        end = start + timedelta(minutes=random.randint(5, 20))
+        pickup, drop = random.choice(nearby_location_pairs())
         ride = Ride(
             rider_id=rider.rider_id,
             company_id=rider.company_id,
             zone_id=rider.zone_id,
-            pickup_location=pickup["name"],
+            pickup_location=display_location(pickup),
             pickup_lat=pickup["lat"],
             pickup_lng=pickup["lng"],
-            drop_location=drop["name"],
+            drop_location=display_location(drop),
             drop_lat=drop["lat"],
             drop_lng=drop["lng"],
             start_time=start,
@@ -96,6 +96,40 @@ def _fabricate_history_for_rider(db: Session, rider, num_rides: int, num_claims:
     db.commit()
 
 
+def ensure_minimum_demo_rides(db: Session, rider, minimum: int = 6) -> int:
+    """Backfill prototype employees left without rides by a scoped data reset."""
+    existing = db.query(Ride).filter(Ride.rider_id == rider.rider_id).all()
+    missing = max(0, minimum - len(existing))
+    if not missing:
+        return len(existing)
+    new_rides = []
+    for _ in range(missing):
+        start = datetime.now(timezone.utc) - timedelta(days=random.randint(1, 120), hours=random.randint(0, 20))
+        end = start + timedelta(minutes=random.randint(5, 20))
+        pickup, drop = random.choice(nearby_location_pairs())
+        ride = Ride(
+            rider_id=rider.rider_id,
+            company_id=rider.company_id,
+            zone_id=rider.zone_id,
+            pickup_location=display_location(pickup),
+            pickup_lat=pickup["lat"],
+            pickup_lng=pickup["lng"],
+            drop_location=display_location(drop),
+            drop_lat=drop["lat"],
+            drop_lng=drop["lng"],
+            start_time=start,
+            end_time=end,
+            fare_amount=Decimal(random.randint(80, 350)),
+            status="completed",
+        )
+        db.add(ride)
+        new_rides.append(ride)
+    db.flush()
+    seed_demo_disruptions(db, new_rides)
+    db.commit()
+    return len(existing) + len(new_rides)
+
+
 def seed_demo_employees(db: Session, count: int, company_id: str | None, zone_id: str | None) -> list[dict]:
     company = db.query(Company).filter(Company.company_id == company_id).first() if company_id else db.query(Company).first()
     zone = db.query(Zone).filter(Zone.zone_id == zone_id).first() if zone_id else db.query(Zone).first()
@@ -125,8 +159,8 @@ def seed_demo_employees(db: Session, count: int, company_id: str | None, zone_id
 
         _fabricate_history_for_rider(
             db, rider,
-            num_rides=random.randint(3, 12),
-            num_claims=random.randint(0, 6),
+            num_rides=random.randint(6, 8),
+            num_claims=random.randint(0, 3),
         )
 
         score_record = compute_and_store_credibility(db, rider)

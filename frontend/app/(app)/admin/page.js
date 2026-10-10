@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, MapPin, Layers, ClipboardCheck, BarChart3, Users, ArrowRight, ShieldCheck } from "lucide-react";
+import { Building2, MapPin, Layers, ClipboardCheck, BarChart3, Users, ArrowRight, ShieldCheck, TrafficCone } from "lucide-react";
 import { getAdminToken } from "@/lib/auth";
 
 const SECTIONS = [
@@ -13,6 +13,7 @@ const SECTIONS = [
   { href: "/admin/coverage-plans", label: "Coverage Plans", desc: "Set payout tiers per company", icon: Layers },
   { href: "/admin/claims", label: "Claims Review", desc: "Decide claims routed to manual review", icon: ClipboardCheck },
   { href: "/admin/analytics", label: "Analytics", desc: "Claim trends and payout totals", icon: BarChart3 },
+  { href: "/admin/traffic-analysis", label: "Traffic Analysis", desc: "Generate labeled synthetic traffic data and analyze rides", icon: TrafficCone },
 ];
 
 export default function AdminHubPage() {

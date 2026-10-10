@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, ShieldCheck, Circle, LoaderCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { getToken } from "@/lib/auth";
 
@@ -18,6 +18,27 @@ export default function RaiseClaimPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [progress, setProgress] = useState(null);
+
+  useEffect(() => {
+    if (!result?.token_id || result.status !== "processing") return;
+    let live = true;
+    const poll = async () => {
+      try {
+        const data = await api.getClaimProgress(result.token_id, token);
+        if (!live) return;
+        setProgress(data);
+        if (data.status !== "processing") {
+          const claims = await api.listMyClaims(token);
+          const updated = claims.find((claim) => claim.token_id === result.token_id);
+          if (updated) setResult(updated);
+        }
+      } catch {}
+    };
+    poll();
+    const timer = setInterval(poll, 1600);
+    return () => { live = false; clearInterval(timer); };
+  }, [result?.token_id, result?.status, token]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -37,7 +58,15 @@ export default function RaiseClaimPage() {
   }
 
   if (result) {
+    const isProcessing = result.status === "processing";
     const isApproved = result.status === "approved";
+    if (isProcessing) {
+      const steps = progress?.checkpoints || [];
+      const completed = steps.filter((step) => step.status === "completed").length;
+      const active = steps.findIndex((step) => step.status === "in_progress");
+      const percent = Math.round((completed / Math.max(1, steps.length)) * 100);
+      return <div className="mx-auto max-w-2xl pt-6"><section className="glass-strong rounded-[2rem] p-6 sm:p-9"><div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary"><LoaderCircle className="animate-spin" size={23}/></span><div><p className="eyebrow">Claim review</p><h1 className="mt-1 font-display text-2xl font-bold text-ink">Review in progress</h1></div></div><p className="mt-4 text-sm leading-relaxed text-muted">We’re checking the reported disruption and your company’s coverage. You can follow each review checkpoint below.</p><div className="mt-6 h-2 overflow-hidden rounded-full bg-primary/10"><div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${percent}%` }}/></div><p className="mt-2 text-right text-xs font-medium text-primary">{percent}%</p><ol className="mt-6 space-y-4">{steps.map((step, index) => <li key={step.label} className="flex gap-3"><span className={`${step.status === "completed" ? "text-safe" : step.status === "in_progress" ? "text-primary" : "text-muted/50"}`}>{step.status === "in_progress" ? <LoaderCircle className="animate-spin" size={18}/> : step.status === "completed" ? <CheckCircle2 size={18}/> : <Circle size={18}/>}</span><div><p className={`text-sm font-medium ${step.status === "waiting" ? "text-muted" : "text-ink"}`}>{step.label}</p><p className="mt-0.5 text-xs text-muted">{step.detail}</p></div></li>)}</ol><Link href="/claims" className="btn-secondary mt-7 inline-flex items-center gap-2">View claim history <ArrowRight size={15}/></Link></section></div>;
+    }
     return (
       <div className="mx-auto max-w-2xl pt-6">
         <div className="glass-strong rounded-[2rem] p-7 text-center sm:p-10">

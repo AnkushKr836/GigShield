@@ -58,3 +58,10 @@ class ClaimDetailOut(ClaimOut):
     rider_email: str
     rider_credibility_score: Optional[float] = None
     disruption_signals: list[dict[str, Any]] = Field(default_factory=list)
+    risk_analysis: Optional[dict[str, Any]] = None
+
+
+class ClaimProgressOut(BaseModel):
+    token_id: str
+    status: str
+    checkpoints: list[dict[str, Any]]

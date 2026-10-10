@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine
 from app.core.database import SessionLocal
 from app import models  # noqa: F401 — import ensures all models register with Base.metadata
-from app.api import riders, zones, companies, coverage_plans, rides, claims, analytics, admin_employees, admin_auth
+from app.api import (
+    riders, zones, companies, coverage_plans, rides, claims, analytics,
+    admin_employees, admin_auth, traffic_analysis, payouts,
+)
 from app.services.zone_seeder import seed_default_zones
 
 
@@ -49,3 +52,5 @@ app.include_router(claims.router)
 app.include_router(analytics.router)
 app.include_router(admin_employees.router)
 app.include_router(admin_auth.router)
+app.include_router(traffic_analysis.router)
+app.include_router(payouts.router)

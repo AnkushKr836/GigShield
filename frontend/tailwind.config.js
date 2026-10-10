@@ -25,9 +25,9 @@ module.exports = {
         "glass-border": "rgba(255, 255, 255, 0.65)",
       },
       fontFamily: {
-        display: ["var(--font-manrope)", "sans-serif"],
-        body: ["var(--font-inter)", "sans-serif"],
-        mono: ["var(--font-plex-mono)", "monospace"],
+        display: ["Manrope", "Segoe UI", "sans-serif"],
+        body: ["Inter", "Segoe UI", "sans-serif"],
+        mono: ["IBM Plex Mono", "Consolas", "monospace"],
       },
       borderRadius: {
         card: "20px",

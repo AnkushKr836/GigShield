@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, Bike, ShieldCheck, User, LogOut, Shield,
-  Users, Building2, MapPin, Layers, ClipboardCheck, BarChart3, ChevronLeft, ChevronRight,
+  LayoutDashboard, Bike, ShieldCheck, User, LogOut, Shield, WalletCards,
+  Users, Building2, MapPin, Layers, ClipboardCheck, BarChart3, ChevronLeft, ChevronRight, TrafficCone,
 } from "lucide-react";
 import { clearToken, clearAdminToken, getToken, isAdminTokenValid } from "@/lib/auth";
 
@@ -13,6 +13,7 @@ const RIDER_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/rides", label: "Rides", icon: Bike },
   { href: "/claims", label: "Claims", icon: ShieldCheck },
+  { href: "/payouts", label: "Payouts", icon: WalletCards },
 ];
 
 const ADMIN_NAV = [
@@ -23,6 +24,7 @@ const ADMIN_NAV = [
   { href: "/admin/coverage-plans", label: "Coverage plans", icon: Layers },
   { href: "/admin/claims", label: "Claims review", icon: ClipboardCheck },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/traffic-analysis", label: "Traffic analysis", icon: TrafficCone },
 ];
 
 export default function Sidebar() {
