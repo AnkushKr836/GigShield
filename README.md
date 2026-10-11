@@ -76,6 +76,8 @@ Claim review is shown as six saved checkpoints. Administrators can inspect claim
 
 Starter delivery regions are **Chennai Central** (medium risk), **Mumbai** (high), **Tambaram** (low), and **Coimbatore** (medium). Administrators can manage service regions through the admin workspace.
 
+Use **Generate demo rides** on the rider's Rides page to create a mixed claim walkthrough: some rides have matching disruption evidence and others do not. The ride itself is not pre-marked with an outcome. Submit a claim to run the normal checks; an unmatched claim goes to manual review, where an administrator can approve or reject it. The rider's Account page can clear that rider's claim and payout history while retaining their rides and coverage for another walkthrough.
+
 ### Separate admin traffic-analysis workflow
 
 Administrators can generate labeled traffic records, train a **Random Forest** classifier, and analyze rides for a selected rider. The resulting assessments are stored for the admin view. This traffic-analysis workflow does **not** feed the claim approval decision. Its generated labels support model-training workflows; evaluation against those labels does not establish real-world traffic accuracy.

@@ -97,6 +97,44 @@ def seed_demo_disruptions(db: Session, rides: list) -> list[DisruptionEvent]:
     return events
 
 
+def seed_claim_scenario_disruptions(db: Session, rides: list) -> list[DisruptionEvent]:
+    """Create evidence-supported and evidence-absent rides for claim walkthroughs.
+
+    The first half of a generated batch receives ride-scoped weather/civic
+    evidence. The remaining rides receive no disruption event. No claim or
+    approval/rejection outcome is created here; the normal claim engine
+    derives the outcome when the rider submits a claim.
+    """
+    if not rides:
+        return []
+
+    evidence_cases = (DEMO_CASES[0], DEMO_CASES[1], DEMO_CASES[2])
+    supported_count = max(1, len(rides) // 2)
+    events = []
+    for index, ride in enumerate(rides[:supported_count]):
+        case = evidence_cases[index % len(evidence_cases)]
+        events.append(DisruptionEvent(
+            zone_id=ride.zone_id,
+            disruption_type=case["disruption_type"],
+            subtype=case["subtype"],
+            severity=case["severity"],
+            start_time=ride.start_time - DEMO_EVENT_BUFFER,
+            end_time=ride.end_time + DEMO_EVENT_BUFFER,
+            source=case["source"],
+            raw_payload={
+                "demo": True,
+                "label": case["label"],
+                "note": case["note"],
+                "details": case["details"],
+                "ride_id": ride.ride_id,
+            },
+        ))
+
+    db.add_all(events)
+    db.flush()
+    return events
+
+
 def list_disruptions_for_ride(db: Session, ride) -> list[DisruptionEvent]:
     """Return ride-specific demo evidence and genuine overlapping zone events."""
     candidates = (

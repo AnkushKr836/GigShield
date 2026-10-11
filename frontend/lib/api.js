@@ -39,6 +39,7 @@ export const api = {
   login: (payload) => request("/riders/login", { method: "POST", body: payload }),
   getMe: (token) => request("/riders/me", { token }),
   getMyCredibility: (token) => request("/riders/me/credibility", { token }),
+  resetMyClaimHistory: (token) => request("/riders/me/claim-history", { method: "DELETE", token }),
 
   adminLogin: (payload) => request("/admin/login", { method: "POST", body: payload }),
 

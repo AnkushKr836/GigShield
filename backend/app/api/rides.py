@@ -19,9 +19,10 @@ def simulate_rides(
     current_rider: Rider = Depends(get_current_rider),
 ):
     """
-    Demo-only: generates fabricated completed rides for the current rider,
-    plus clearly labelled prototype weather, traffic, and curfew fixtures
-    for deterministic claim demos. Not a real ride/trip integration.
+    Generates completed sample rides for the current rider. A portion has
+    ride-scoped disruption evidence and the rest have no matching event, so
+    the claim engine can route submitted claims through different outcomes.
+    No claim or decision is pre-created by this endpoint.
     """
     return simulate_rides_for_rider(db, current_rider)
 
